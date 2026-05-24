@@ -1,12 +1,17 @@
+const getOpenerBinary = (): string => {
+  if (process.platform === "darwin") {
+    return "open";
+  }
+  if (process.platform === "win32") {
+    return "start";
+  }
+  return "xdg-open";
+};
 export const openUrl = (url: string): void => {
   if (!url) {
     return;
   }
-  const opener =
-    process.platform === "darwin"
-      ? "open"
-      : process.platform === "win32"
-        ? "start"
-        : "xdg-open";
-  Bun.spawn([opener, url], { stdio: ["ignore", "ignore", "ignore"] });
+  Bun.spawn([getOpenerBinary(), url], {
+    stdio: ["ignore", "ignore", "ignore"],
+  });
 };
