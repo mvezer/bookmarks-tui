@@ -9,10 +9,13 @@
   },
   "private": true,
   "scripts": {
-    "start": "bun index.ts"
+    "start": "bun run src/index.ts",
+    "dev": "bun run --watch src/index.ts"
   },
   "type": "module",
   "dependencies": {
+    "@opentui/core": "^0.2.15",
+    "@opentui/keymap": "^0.2.15",
     "fuse.js": "^7.3.0"
   }
 }
