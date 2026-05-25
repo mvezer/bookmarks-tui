@@ -44,7 +44,6 @@ export class ResultList extends ScrollBoxRenderable {
   }
 
   _applySelected(value: number) {
-    console.log(value, this._items.length);
     if (value >= this._items.length) {
       value = this._items.length - 1;
     } else if (value < 0) {
@@ -54,6 +53,11 @@ export class ResultList extends ScrollBoxRenderable {
     this._selectedIndex = value;
     this._items[this._selectedIndex]!.selected = true;
     this.scrollTo(Math.max(0, this._selectedIndex - this.height + 3));
+    console.log(this.selectedBookmarkEntry);
+    EventBus.emit(
+      BookmarkEvents.currentBookmarkChanged,
+      this.selectedBookmarkEntry,
+    );
   }
 
   nextItem() {

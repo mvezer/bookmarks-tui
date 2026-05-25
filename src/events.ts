@@ -20,6 +20,7 @@ export enum BookmarkEvents {
   selectBookmark = "selectBookmark",
   searchBookmark = "searchBookmark",
   deleteBookmark = "deleteBookmark",
+  currentBookmarkChanged = "currentBookmarkChanged",
 }
 
 class Events extends EventEmitter {

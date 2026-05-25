@@ -1,6 +1,7 @@
 import { ResultList } from "./result-list";
 import { EventBus, BookmarkEvents, KeymapEvents } from "../events";
-import { type BookmarkEntry } from "../bookmarks";
+import { type BookmarkEntry } from "../bookmarks/types";
+import { StatusBar } from "./status-bar";
 
 import {
   BoxRenderable,
@@ -13,6 +14,7 @@ export class TUI extends BoxRenderable {
   private _searchBox: BoxRenderable;
   private _searchInput: InputRenderable;
   private _resultList: ResultList;
+  private _statusBar: StatusBar;
 
   constructor(renderer: CliRenderer) {
     super(renderer, {
@@ -34,10 +36,12 @@ export class TUI extends BoxRenderable {
       width: "100%",
       placeholder: "bookmark name",
     });
+    this._statusBar = new StatusBar(renderer);
     this._resultList = new ResultList(renderer);
     this._searchBox.add(this._searchInput);
     this.add(this._searchBox);
     this.add(this._resultList);
+    this.add(this._statusBar);
     renderer.root.add(this);
 
     this._searchInput.focus();
@@ -55,5 +59,8 @@ export class TUI extends BoxRenderable {
   }
   resetSearch(): void {
     this._searchInput.value = "";
+  }
+  set currentBookmark(bookmarkEntry: BookmarkEntry | undefined) {
+    this._statusBar.currentBookmark = bookmarkEntry;
   }
 }
