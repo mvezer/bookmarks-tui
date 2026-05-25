@@ -2,7 +2,8 @@
   "name": "bookmarks",
   "module": "index.ts",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/command-line-args": "^5.2.3"
   },
   "peerDependencies": {
     "typescript": "^5"
@@ -16,6 +17,9 @@
   "dependencies": {
     "@opentui/core": "^0.2.15",
     "@opentui/keymap": "^0.2.15",
-    "fuse.js": "^7.3.0"
+    "command-line-args": "^6.0.2",
+    "fuse.js": "^7.3.0",
+    "node-html-parser": "^7.1.0",
+    "uuid": "^14.0.0"
   }
 }

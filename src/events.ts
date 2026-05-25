@@ -10,6 +10,7 @@ export enum KeymapEvents {
   pageDown = "pageDown",
   pageUp = "pageUp",
   enter = "enter",
+  delete = "delete",
 }
 
 export enum BookmarkEvents {

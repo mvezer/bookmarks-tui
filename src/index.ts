@@ -1,12 +1,51 @@
-import { Bookmarks } from "./bookmarks";
+import { Bookmarks } from "./bookmarks/bookmarks";
 import { createCliRenderer, ConsolePosition } from "@opentui/core";
 import { EventBus, BookmarkEvents } from "./events";
 import { TUI } from "./components/tui";
 import { createKeymap } from "./keymap";
 import { openUrl } from "./browser";
+import commandLineArgs from "command-line-args";
 
-const bookmarks = new Bookmarks();
+const mainDefinitions = [
+  { name: "command", type: String, defaultOption: true },
+  { name: "path", alias: "p", type: String },
+];
+
+const mainOptions = commandLineArgs(mainDefinitions, {
+  stopAtFirstUnknown: true,
+});
+const argv = mainOptions._unknown || [];
+
+const bookmarks = new Bookmarks(mainOptions.path);
 bookmarks.load();
+
+if (mainOptions.command === "import") {
+  const importDefinitions = [
+    { name: "importPath", type: String },
+    { name: "source", alias: "s", type: String, defaultValue: "html" },
+  ];
+  const importOptions = commandLineArgs(importDefinitions, { argv });
+  if (importOptions.source === "chrome") {
+    console.log("Importing bookmarks from Chrome");
+    bookmarks.importFromChrome(importOptions.importPath);
+  } else if (importOptions.source === "html") {
+    if (!importOptions.importPath) {
+      console.error("No import path provided!");
+      process.exit(1);
+    }
+    console.log(`Importing bookmarks from HTML ${importOptions.importPath}`);
+    bookmarks.importFromHtml(importOptions.importPath);
+  } else {
+    console.error(
+      `Source "${importOptions.source}" is not supported (currently only html and chrome import is supported)`,
+    );
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
+// bookmarks.load();
+
 const cliRenderer = await createCliRenderer({
   consoleOptions: {
     position: ConsolePosition.BOTTOM, // Position on screen

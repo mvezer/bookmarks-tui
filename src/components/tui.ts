@@ -53,4 +53,7 @@ export class TUI extends BoxRenderable {
   set searchResults(bookmarkEntries: BookmarkEntry[]) {
     this._resultList.items = bookmarkEntries;
   }
+  resetSearch(): void {
+    this._searchInput.value = "";
+  }
 }
