@@ -5,6 +5,7 @@ import { TUI } from "./components/tui";
 import { createKeymap } from "./keymap";
 import { openUrl } from "./browser";
 import commandLineArgs from "command-line-args";
+import { yesNoDialog } from "./components/yesno-dialog";
 
 const mainDefinitions = [
   { name: "command", type: String, defaultOption: true },
@@ -69,4 +70,18 @@ EventBus.on(BookmarkEvents.searchBookmark, (query: string) => {
 
 EventBus.on(BookmarkEvents.selectBookmark, (bookmarkEntry: any) => {
   openUrl(bookmarkEntry.url);
+});
+
+EventBus.on(BookmarkEvents.deleteBookmark, (bookmarkEntry: any) => {
+  console.log(bookmarkEntry);
+  yesNoDialog(
+    cliRenderer,
+    `Are you sure you want to delete "${bookmarkEntry.name}"?`,
+    () => {
+      bookmarks.deleteBookmark(bookmarkEntry);
+      tui.searchResults = bookmarks.bookmarkEntries;
+      bookmarks.save();
+    },
+    () => {},
+  );
 });

@@ -4,7 +4,7 @@ import {
   TextRenderable,
   RGBA,
 } from "@opentui/core";
-import type { BookmarkEntry } from "../bookmarks";
+import type { BookmarkEntry } from "../bookmarks/types";
 
 const BG_COLOR_NORMAL = "#00000000";
 const BG_COLOR_SELECTED = "#6c6c6c";

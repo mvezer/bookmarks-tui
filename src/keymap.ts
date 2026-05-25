@@ -10,12 +10,15 @@ const keyBindings: Array<{ key: string; event: KeymapEvents }> = [
   { key: "down", event: KeymapEvents.moveDown },
   { key: "ctrl+q", event: KeymapEvents.quit },
   { key: "alt+c", event: KeymapEvents.toggleConsole },
+  { key: "alt+d", event: KeymapEvents.requestDelete },
   { key: "ctrl+u", event: KeymapEvents.halfPageUp },
   { key: "ctrl+d", event: KeymapEvents.halfPageDown },
   { key: "ctrl+b", event: KeymapEvents.pageUp },
   { key: "ctrl+f", event: KeymapEvents.pageDown },
   { key: "end", event: KeymapEvents.halfPageDown },
   { key: "return", event: KeymapEvents.enter },
+  { key: "y", event: KeymapEvents.yPressed },
+  { key: "n", event: KeymapEvents.nPressed },
 ];
 
 export const createKeymap = (renderer: CliRenderer): TKeymap => {

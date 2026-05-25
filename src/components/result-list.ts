@@ -2,7 +2,7 @@ import { ScrollBoxRenderable, CliRenderer } from "@opentui/core";
 import { ResultItem } from "./result-item";
 import { EventBus, KeymapEvents, BookmarkEvents } from "../events";
 
-import type { BookmarkEntry } from "../bookmarks";
+import type { BookmarkEntry } from "../bookmarks/types";
 export class ResultList extends ScrollBoxRenderable {
   private _items: ResultItem[] = [];
   private _selectedIndex = 0;
@@ -19,10 +19,10 @@ export class ResultList extends ScrollBoxRenderable {
       this.nextItem();
     });
     EventBus.on(KeymapEvents.enter, () => {
-      EventBus.emit(
-        BookmarkEvents.selectBookmark,
-        this._items[this._selectedIndex]!.bookmarkEntry,
-      );
+      EventBus.emit(BookmarkEvents.selectBookmark, this.selectedBookmarkEntry);
+    });
+    EventBus.on(KeymapEvents.requestDelete, () => {
+      EventBus.emit(BookmarkEvents.deleteBookmark, this.selectedBookmarkEntry);
     });
   }
 
@@ -69,5 +69,9 @@ export class ResultList extends ScrollBoxRenderable {
   }
   get selectedIndex(): number {
     return this._selectedIndex;
+  }
+
+  get selectedBookmarkEntry(): BookmarkEntry | undefined {
+    return this._items[this._selectedIndex]?.bookmarkEntry;
   }
 }

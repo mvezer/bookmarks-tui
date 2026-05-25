@@ -11,11 +11,15 @@ export enum KeymapEvents {
   pageUp = "pageUp",
   enter = "enter",
   delete = "delete",
+  requestDelete = "requestDelete",
+  yPressed = "yPressed",
+  nPressed = "nPressed",
 }
 
 export enum BookmarkEvents {
   selectBookmark = "selectBookmark",
   searchBookmark = "searchBookmark",
+  deleteBookmark = "deleteBookmark",
 }
 
 class Events extends EventEmitter {

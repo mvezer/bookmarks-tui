@@ -44,6 +44,12 @@ export class Bookmarks {
     writeFileSync(this._bookmarksFilePath, JSON.stringify(this._bookmarks));
   }
 
+  deleteBookmark(bookmarkEntry: BookmarkEntry): void {
+    this._bookmarks = this._bookmarks.filter((b) => {
+      return b.guid !== bookmarkEntry.guid;
+    });
+  }
+
   isBookmarkExists(bookmarkEntry: BookmarkEntry): boolean {
     const found = this._bookmarks.find((b) => {
       return (
