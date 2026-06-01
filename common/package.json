@@ -1,0 +1,10 @@
+{
+  "name": "@bookmarks-tui/common",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Common types and utils for the Bookmarks TUI app and connector",
+  "license": "MIT",
+  "author": "Matyas Vezer <mat@vezer.me>",
+  "type": "module",
+  "exports": "./index.ts"
+}

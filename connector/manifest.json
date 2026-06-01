@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmarks TUI connector",
+  "version": "1.0",
+  "permissions": ["bookmarks", "storage"],
+  "host_permissions": ["http://localhost:31531/*"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "icons": {
+    "48": "icon/bookmarks-tui-connector-48px.png",
+    "128": "icon/bookmarks-tui-connector-128px.png"
+  }
+}

@@ -14,6 +14,7 @@ export enum KeymapEvents {
   requestDelete = "requestDelete",
   yPressed = "yPressed",
   nPressed = "nPressed",
+  escPressed = "escPressed",
 }
 
 export enum BookmarkEvents {
@@ -21,6 +22,8 @@ export enum BookmarkEvents {
   searchBookmark = "searchBookmark",
   deleteBookmark = "deleteBookmark",
   currentBookmarkChanged = "currentBookmarkChanged",
+  receivedBookmarks = "receivedBookmarks",
+  syncedBookmarks = "syncedBookmarks",
 }
 
 class Events extends EventEmitter {

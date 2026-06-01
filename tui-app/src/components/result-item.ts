@@ -4,7 +4,7 @@ import {
   TextRenderable,
   RGBA,
 } from "@opentui/core";
-import type { BookmarkEntry } from "../bookmarks/types";
+import { type Bookmark } from "@bookmarks-tui/common";
 
 const BG_COLOR_NORMAL = "#00000000";
 const BG_COLOR_SELECTED = "#6c6c6c";
@@ -16,22 +16,21 @@ export class ResultItem extends BoxRenderable {
   private _text: TextRenderable;
   constructor(
     renderer: CliRenderer,
-    private _bookmarkEntry: BookmarkEntry,
-    private _index: number,
+    private _bookmark: Bookmark,
   ) {
     super(renderer, {
-      id: `result-item-${_index}`,
+      id: `result-item-${_bookmark.id}`,
       width: "100%",
       height: 1,
     });
     this._text = new TextRenderable(renderer, {
-      content: _bookmarkEntry.name,
+      content: _bookmark.title,
     });
     this.add(this._text);
     this._applySelected();
   }
-  get bookmarkEntry(): BookmarkEntry {
-    return this._bookmarkEntry;
+  get bookmark(): Bookmark {
+    return this._bookmark;
   }
 
   private _applySelected() {

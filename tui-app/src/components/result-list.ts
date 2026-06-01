@@ -2,12 +2,13 @@ import { ScrollBoxRenderable, CliRenderer } from "@opentui/core";
 import { ResultItem } from "./result-item";
 import { EventBus, KeymapEvents, BookmarkEvents } from "../events";
 
-import type { BookmarkEntry } from "../bookmarks/types";
+import type { Bookmark } from "@bookmarks-tui/common";
+
 export class ResultList extends ScrollBoxRenderable {
   private _items: ResultItem[] = [];
   private _selectedIndex = 0;
-  constructor(private renderer: CliRenderer) {
-    super(renderer, {
+  constructor(private _renderer: CliRenderer) {
+    super(_renderer, {
       width: "100%",
       scrollY: true,
       viewportCulling: true,
@@ -19,10 +20,10 @@ export class ResultList extends ScrollBoxRenderable {
       this.nextItem();
     });
     EventBus.on(KeymapEvents.enter, () => {
-      EventBus.emit(BookmarkEvents.selectBookmark, this.selectedBookmarkEntry);
+      EventBus.emit(BookmarkEvents.selectBookmark, this.selectedBookmark);
     });
     EventBus.on(KeymapEvents.requestDelete, () => {
-      EventBus.emit(BookmarkEvents.deleteBookmark, this.selectedBookmarkEntry);
+      EventBus.emit(BookmarkEvents.deleteBookmark, this.selectedBookmark);
     });
   }
 
@@ -31,12 +32,11 @@ export class ResultList extends ScrollBoxRenderable {
     this._items = [];
   }
 
-  set items(bookmarkEntry: BookmarkEntry[]) {
+  set items(bookmarks: Bookmark[]) {
     this.clear();
 
-    let i = 0;
-    for (const b of bookmarkEntry) {
-      const item = new ResultItem(this.renderer, b, i++);
+    for (const b of bookmarks) {
+      const item = new ResultItem(this._renderer, b);
       this._items.push(item);
       this.add(item);
     }
@@ -53,11 +53,7 @@ export class ResultList extends ScrollBoxRenderable {
     this._selectedIndex = value;
     this._items[this._selectedIndex]!.selected = true;
     this.scrollTo(Math.max(0, this._selectedIndex - this.height + 3));
-    console.log(this.selectedBookmarkEntry);
-    EventBus.emit(
-      BookmarkEvents.currentBookmarkChanged,
-      this.selectedBookmarkEntry,
-    );
+    EventBus.emit(BookmarkEvents.currentBookmarkChanged, this.selectedBookmark);
   }
 
   nextItem() {
@@ -75,7 +71,7 @@ export class ResultList extends ScrollBoxRenderable {
     return this._selectedIndex;
   }
 
-  get selectedBookmarkEntry(): BookmarkEntry | undefined {
-    return this._items[this._selectedIndex]?.bookmarkEntry;
+  get selectedBookmark(): Bookmark | undefined {
+    return this._items[this._selectedIndex]?.bookmark;
   }
 }

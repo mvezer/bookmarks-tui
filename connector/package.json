@@ -1,0 +1,20 @@
+{
+  "name": "bookmarks-tui-connector",
+  "version": "1.0.0",
+  "description": "Connector chrome extension for the Bookmarks TUI",
+  "license": "MIT",
+  "author": "Matyas Vezer <mat@vezer.me>",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "rm -rf dist && bun build ./src/background.ts --outdir ./dist"
+  },
+  "dependencies": {
+    "@bookmarks-tui/common": "*",
+    "typescript": "^5.9.3",
+    "undici-types": "^6.21.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.1.42"
+  }
+}

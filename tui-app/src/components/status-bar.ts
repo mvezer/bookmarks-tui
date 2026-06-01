@@ -1,4 +1,4 @@
-import { type BookmarkEntry } from "../bookmarks/types";
+import type { Bookmark } from "@bookmarks-tui/types";
 import { BoxRenderable, CliRenderer, TextRenderable } from "@opentui/core";
 
 export class StatusBar extends BoxRenderable {
@@ -20,10 +20,9 @@ export class StatusBar extends BoxRenderable {
     this.add(this._statusText);
   }
 
-  set currentBookmark(bookmarkEntry: BookmarkEntry | undefined) {
+  set currentBookmark(bookmarkEntry: Bookmark | undefined) {
     if (bookmarkEntry) {
       this._statusText.content = bookmarkEntry.url;
-      console.log(bookmarkEntry.url);
     } else {
       this._statusText.content = "-";
     }

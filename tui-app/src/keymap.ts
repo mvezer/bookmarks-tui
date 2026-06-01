@@ -19,6 +19,7 @@ const keyBindings: Array<{ key: string; event: KeymapEvents }> = [
   { key: "return", event: KeymapEvents.enter },
   { key: "y", event: KeymapEvents.yPressed },
   { key: "n", event: KeymapEvents.nPressed },
+  { key: "esc", event: KeymapEvents.escPressed },
 ];
 
 export const createKeymap = (renderer: CliRenderer): TKeymap => {
