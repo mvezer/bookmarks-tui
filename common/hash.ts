@@ -1,4 +1,4 @@
-import { Bookmark } from "./bookmark";
+import { Bookmark } from './bookmark';
 
 // simple, unsafe but very useful and effective hash function
 // thank you JavaSpring.net!
@@ -18,14 +18,14 @@ export const hash = (input: string): string => {
 
   const toHex32 = (num: number) => {
     const hex = (num >>> 0).toString(16);
-    return hex.padStart(8, "0").slice(-8);
+    return hex.padStart(8, '0').slice(-8);
   };
 
   return toHex32(hashA) + toHex32(hashB) + toHex32(hashC) + toHex32(hashD);
 };
 
 export const createBookmarkHash = (
-  bookmark: Pick<Bookmark, "title" | "url">,
+  bookmark: Pick<Bookmark, 'title' | 'url'>,
 ): string => {
   return hash(bookmark.title + bookmark.url);
 };

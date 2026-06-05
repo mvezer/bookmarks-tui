@@ -3,11 +3,11 @@ import {
   BoxRenderable,
   TextRenderable,
   RGBA,
-} from "@opentui/core";
-import { EventBus, KeymapEvents } from "../events";
+} from '@opentui/core';
+import { Keymap, KeymapEvents } from '../keymap';
 
-const BG_COLOR_NORMAL = "#aa0000ff";
-const MESSAGE_POSTFIX = "(y)es or (n)o";
+const BG_COLOR_NORMAL = '#aa0000ff';
+const MESSAGE_POSTFIX = '(y)es or (n)o';
 
 export const yesNoDialog = (
   renderer: CliRenderer,
@@ -19,29 +19,29 @@ export const yesNoDialog = (
   focusedRenderable?.blur();
   const box = new BoxRenderable(renderer, {
     id: `yesno-dialog`,
-    width: "auto",
+    width: 'auto',
     height: 5,
     border: true,
-    borderStyle: "double",
+    borderStyle: 'double',
     backgroundColor: RGBA.fromHex(BG_COLOR_NORMAL),
-    position: "absolute",
-    alignSelf: "center",
-    top: "50%",
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
     paddingX: 2,
   });
   box.add(
     new TextRenderable(renderer, {
       content: text,
-      width: "100%",
-      alignSelf: "center",
+      width: '100%',
+      alignSelf: 'center',
       height: 1,
     }),
   );
   box.add(
     new TextRenderable(renderer, {
       content: MESSAGE_POSTFIX,
-      width: "auto",
-      alignSelf: "center",
+      width: 'auto',
+      alignSelf: 'center',
       marginTop: 1,
       height: 1,
     }),
@@ -49,12 +49,12 @@ export const yesNoDialog = (
   renderer.root.add(box);
   box.focus();
 
-  EventBus.once(KeymapEvents.yPressed, () => {
+  Keymap.instance.once(KeymapEvents.yPressed, () => {
     focusedRenderable?.focus();
     box.destroy();
     onYes();
   });
-  EventBus.once(KeymapEvents.nPressed, () => {
+  Keymap.instance.once(KeymapEvents.nPressed, () => {
     focusedRenderable?.focus();
     box.destroy();
     onNo();

@@ -1,19 +1,23 @@
 import {
   Bookmark,
-  type BookmarkSync,
-  BookmarkAddSync,
-  BookmarkRemoveSync,
-  createAddBookmarkSync,
-  createRemoveBookmarkSync,
-  createBookmarkHash,
-} from "@bookmarks-tui/common";
+  PORT,
+  isFromTuiApp,
+  createBookmark,
+  BookmarkChange,
+  ReverseLookupdMap,
+  BookmarkChangeRepository,
+  isBoookmarkChange,
+  BookmarkChangeKind,
+} from '@bookmarks-tui/common';
+import { Storage } from './storage';
 
 export type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode & {
-  description?: string;
+  trash?: boolean;
 };
 
-const syncData: Map<string, BookmarkSync> = new Map<string, BookmarkSync>();
-const hashLookupMap = new Map<string, string>(); // hash -> id
+let hashes = new ReverseLookupdMap<string, string>();
+const storage = new Storage();
+let changes: BookmarkChangeRepository = new BookmarkChangeRepository(storage);
 
 enum HostStatus {
   Unknown,
@@ -23,40 +27,41 @@ enum HostStatus {
 
 let lastHostStatus: HostStatus = HostStatus.Unknown;
 
-const isSyncNeeded = () => {
-  return syncData.size > 0;
-};
-
 let isInitialized = false;
 
-const HOST = "http://localhost:31531/";
+// TODO: figure out a better way to prevent syncing
+// This set holds the ids we do not want to sync. It's used when receiving sync iformation and apply the changse
+// but we don't want these changes to be synced back to the host
+const ignoreSyncIds = new Set<string>();
+
+const HOST = `http://localhost:${PORT}`;
 
 const createBookmarkFromTreeNode = (node: BookmarkTreeNode): Bookmark => {
   const { title, url } = node;
   if (!title || !url) {
-    throw new Error("Invalid bookmark");
+    throw new Error('Invalid bookmark');
   }
-  return {
+  return createBookmark({
     id: node.id,
-    dateAdded: node.dateAdded ?? Date.now(),
-    description: node.description || "",
     title,
     url,
-    hash: createBookmarkHash({ title, url }),
-  };
+  });
 };
 
-const isUrlBookmark = (node: BookmarkTreeNode): boolean => !!node.url;
-
-async function getAllBookmarks(): Promise<void> {
-  console.log("getAllBookmarks");
+// gets all the bookmarks and flattens the tree
+async function getAllBookmarks(): Promise<Bookmark[]> {
   const tree: BookmarkTreeNode[] = await chrome.bookmarks.getTree();
   const stack: BookmarkTreeNode[] = [];
+  const bookmarks: Bookmark[] = [];
   for (const node of tree) {
-    if (node.children) {
+    // filter out deleted bookmarks
+    if (node.children && !node.trash) {
       stack.push(...node.children);
-    } else if (isUrlBookmark(node)) {
-      onBookmarkCreated(node.id, node);
+      // TODO: check if this  "else if" is needed here
+    } else if (node.url !== undefined && node.url.length > 0) {
+      bookmarks.push(
+        createBookmark({ title: node.title, url: node.url, id: node.id }),
+      );
     }
   }
 
@@ -67,17 +72,18 @@ async function getAllBookmarks(): Promise<void> {
     }
     if (node.children) {
       stack.push(...node.children);
-    } else if (isUrlBookmark(node)) {
-      onBookmarkCreated(node.id, node);
+    } else if (node.url !== undefined && node.url.length > 0) {
+      bookmarks.push(
+        createBookmark({ title: node.title, url: node.url, id: node.id }),
+      );
     }
   }
-  console.log("getAllBookmarks done");
-  console.log(syncData);
+  return bookmarks;
 }
 
 const isHostAlive = async (): Promise<boolean> => {
   try {
-    const response = await fetch(new URL("status", HOST).toString());
+    const response = await fetch(new URL('status', HOST).toString());
     return response.ok;
   } catch (e) {
     return false;
@@ -85,84 +91,117 @@ const isHostAlive = async (): Promise<boolean> => {
 };
 
 export const init = async (): Promise<void> => {
-  console.log("init");
   if (!isInitialized) {
-    await getAllBookmarks();
-    isInitialized = true;
+    const chromeBookmarks = await getAllBookmarks();
+    hashes = new ReverseLookupdMap<string, string>(
+      Object.entries(await storage.getAllBookmarkHashes()),
+    );
+    await changes.init();
+    console.log('hashes', hashes);
+    // these are the bookmarks that are not in the storage
+    const bookmarksToAdd = chromeBookmarks.filter((b) => {
+      return hashes.get(b.id) !== b.hash;
+    });
+    // add the bookmark changes for syncing
+    await Promise.all(
+      bookmarksToAdd.map(async (b) => {
+        await storage.setBookmarkHashes({ [b.id]: b.hash });
+        await changes.add(b);
+      }),
+    );
   }
 };
 
-export const onBookmarkCreated = (
-  id: string,
+export const onBookmarkCreated = async (
+  _: string,
   bookmarkTreeNode: BookmarkTreeNode,
 ) => {
-  const bookmark = createBookmarkFromTreeNode(bookmarkTreeNode);
-  const syncItem = createAddBookmarkSync(bookmark);
-  hashLookupMap.set(bookmark.hash, id);
-  syncData.set(syncItem.uuid, syncItem);
-};
-
-export const onBookmarkRemoved = async (id: string) => {
-  const syncItem = createRemoveBookmarkSync(id);
-  syncData.set(syncItem.uuid, syncItem);
-  try {
-    const bookmark = await chrome.bookmarks.get(id);
-    if (!bookmark || !bookmark[0]) {
-      return;
-    }
-    const { title, url } = createBookmarkFromTreeNode(bookmark[0]);
-    hashLookupMap.delete(createBookmarkHash({ title, url }));
-  } catch (e) {
-    console.error(e);
+  const newBookmark = createBookmarkFromTreeNode(bookmarkTreeNode);
+  hashes.set(newBookmark.id, newBookmark.hash);
+  if (!ignoreSyncIds.has(newBookmark.id)) {
+    changes.add(newBookmark);
+  } else {
+    ignoreSyncIds.delete(newBookmark.id);
   }
 };
 
-export const onBookmarkChanged = (
-  id: string,
-  bookmarkChangedData: Omit<BookmarkTreeNode, "id">,
+export const onBookmarkRemoved = async (bookmarkId: string) => {
+  if (!ignoreSyncIds.has(bookmarkId)) {
+    changes.add(bookmarkId);
+  } else {
+    ignoreSyncIds.delete(bookmarkId);
+  }
+  hashes.delete(bookmarkId);
+};
+
+export const onBookmarkChanged = async (
+  bookmarkId: string,
+  bookmarkChangedData: Omit<BookmarkTreeNode, 'id'>,
 ) => {
-  const bookmark = createBookmarkFromTreeNode({ ...bookmarkChangedData, id });
-  const syncItem = createAddBookmarkSync(bookmark);
-  hashLookupMap.set(bookmark.hash, id);
-  syncData.set(syncItem.uuid, syncItem);
+  const bookmark = createBookmarkFromTreeNode({
+    ...bookmarkChangedData,
+    id: bookmarkId,
+  });
+  hashes.delete(bookmarkId);
+  hashes.set(bookmarkId, bookmark.hash);
+  if (!ignoreSyncIds.has(bookmarkId)) {
+    changes.add(bookmark);
+  } else {
+    ignoreSyncIds.delete(bookmarkId);
+  }
+};
+
+export const onBookmarkMoved = async (
+  id: string,
+  {
+    parentId,
+    oldParentId,
+  }: { parentId: string; oldParentId: string; index: number; oldIndex: number },
+) => {
+  if (parentId === oldParentId) {
+    return;
+  }
+  const newParent = await chrome.bookmarks.get(parentId);
+  if (!newParent || !newParent[0]) {
+    return;
+  }
+  if ((newParent[0] as BookmarkTreeNode).trash) {
+    await onBookmarkRemoved(id);
+  }
 };
 
 export const updateIcon = async (isAlive: boolean): Promise<void> => {
   if (!isAlive) {
     chrome.action.setIcon(
-      { path: "/icon/bookmarks-tui-connector-inactive-48px.png" },
+      { path: '/icon/bookmarks-tui-connector-inactive-48px.png' },
       () => {},
     );
     return;
   }
   chrome.action.setIcon(
-    { path: "/icon/bookmarks-tui-connector-48px.png" },
+    { path: '/icon/bookmarks-tui-connector-48px.png' },
     () => {},
   );
 };
 
 const sync = async (): Promise<void> => {
-  console.log("sync!!");
-  console.log(syncData);
+  console.log('sync', changes.getAllchanges());
   try {
     // send the sync data to the server and check if there's sync data coming back
-    const response = await fetch(new URL("sync/chrome", HOST).toString(), {
+    const response = await fetch(new URL('sync/chrome', HOST).toString(), {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
-      method: "POST",
-      body: JSON.stringify(Array.from(syncData.values())),
+      method: 'POST',
+      body: JSON.stringify(Array.from(changes.getAllchanges())),
     });
     if (response.ok) {
       const res = await response.json();
-      const { syncedIds } = res;
-      if (syncedIds && Array.isArray(syncedIds)) {
-        for (const syncedId of syncedIds) {
-          console.log("synced id", syncedId);
-          syncData.delete(syncedId);
-        }
+      const { processedChangeIds } = res;
+      if (!!processedChangeIds && Array.isArray(processedChangeIds)) {
+        await Promise.all(processedChangeIds.map(changes.delete.bind(changes)));
       } else {
-        console.error("invalid sync response", res);
+        console.error('invalid sync response', processedChangeIds);
       }
     }
   } catch (e) {
@@ -171,26 +210,93 @@ const sync = async (): Promise<void> => {
 };
 
 const requestSync = async (): Promise<void> => {
-  const response = await fetch(new URL("sync/chrome", HOST).toString(), {
+  const response = await fetch(new URL('sync/chrome', HOST).toString(), {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
-    method: "GET",
+    method: 'GET',
   });
-  if (response.ok) {
+  if (response.ok && response.status === 200) {
+    const incomingChanges: [string, BookmarkChange][] = await response.json();
+    if (
+      !Array.isArray(incomingChanges) ||
+      incomingChanges.some((ic) => {
+        if (!Array.isArray(ic)) return true;
+        const [id, change] = ic;
+        return typeof id !== 'string' || !isBoookmarkChange(change);
+      })
+    ) {
+      console.error('invalid sync request response', incomingChanges);
+      return;
+    }
+
+    const processedChangeIds: string[] = [];
+    for (const ic of incomingChanges) {
+      const [changeId, change] = ic;
+      if (change.kind === BookmarkChangeKind.Add) {
+        const { kind, timestamp, ...bookmark } = change;
+        if (isFromTuiApp(bookmark.id) || !hashes.has(bookmark.id)) {
+          // we create a new bookmark
+          await chrome.bookmarks.create({
+            title: bookmark.title,
+            url: bookmark.url,
+          });
+        } else {
+          // we update an existing bookmark
+          try {
+            ignoreSyncIds.add(bookmark.id);
+            await chrome.bookmarks.update(bookmark.id, {
+              title: bookmark.title,
+              url: bookmark.url,
+            });
+            processedChangeIds.push(changeId);
+          } catch (e) {
+            ignoreSyncIds.delete(bookmark.id);
+            console.info('Could not update bookmark "' + bookmark.id + '"');
+          }
+        }
+      } else if (change.kind === BookmarkChangeKind.Remove) {
+        try {
+          ignoreSyncIds.add(change.id);
+          await chrome.bookmarks.remove(change.id);
+        } catch (e) {
+          console.info('Could not remove bookmark "' + change.id + '"');
+        } finally {
+          // in case of remove failure we still confirm the sync
+          processedChangeIds.push(changeId);
+        }
+      }
+    }
+    await confirmSync(processedChangeIds);
   }
 };
 
+const confirmSync = async (processedChangeIds: string[]): Promise<void> => {
+  const response = await fetch(new URL('sync/confirm', HOST).toString(), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    method: 'POST',
+    body: JSON.stringify(processedChangeIds),
+  });
+  if (response.ok) {
+    return;
+  }
+  console.warn('confirm sync failed', response);
+};
+
 export const heartbeat = async (): Promise<void> => {
-  console.log("<3");
   const isAlive = await isHostAlive();
-  if (isAlive && lastHostStatus === HostStatus.Alive) {
+  if (isAlive && lastHostStatus !== HostStatus.Alive) {
     await updateIcon(true);
-  } else if (!isAlive && lastHostStatus === HostStatus.Inactive) {
+  } else if (!isAlive && lastHostStatus !== HostStatus.Inactive) {
     await updateIcon(false);
   }
   lastHostStatus = isAlive ? HostStatus.Alive : HostStatus.Inactive;
-  if (isAlive && isSyncNeeded()) {
-    await sync();
+  if (isAlive) {
+    if (changes.size > 0) {
+      await sync();
+    }
+    await requestSync();
   }
 };

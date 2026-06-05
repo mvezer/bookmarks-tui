@@ -3,6 +3,7 @@ import {
   onBookmarkCreated,
   onBookmarkRemoved,
   onBookmarkChanged,
+  onBookmarkMoved,
   init,
   type BookmarkTreeNode,
 } from "./main.js";
@@ -23,12 +24,15 @@ const run = async () => {
     onBookmarkCreated(id, bookmark);
   });
 
-  chrome.bookmarks.onRemoved.addListener((id: string) => {
-    onBookmarkRemoved(id);
+  chrome.bookmarks.onRemoved.addListener(async (id: string) => {
+    await onBookmarkRemoved(id);
   });
 
   chrome.bookmarks.onChanged.addListener(async (id, bookmark) => {
     onBookmarkChanged(id, bookmark as BookmarkTreeNode);
+  });
+  chrome.bookmarks.onMoved.addListener(async (id, moveInfo) => {
+    await onBookmarkMoved(id, moveInfo);
   });
   await init();
 };

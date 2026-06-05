@@ -1,0 +1,8 @@
+{
+  "parser": "typescript",
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "tabWidth": 2,
+  "maxLineLength": 160
+}

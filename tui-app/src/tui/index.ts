@@ -1,15 +1,16 @@
-import { createCliRenderer, ConsolePosition } from "@opentui/core";
-import { ResultList } from "./result-list";
-import { EventBus, BookmarkEvents, KeymapEvents } from "../events";
-import { type Bookmark } from "@bookmarks-tui/common";
-import { StatusBar } from "./status-bar";
+import { createCliRenderer, ConsolePosition } from '@opentui/core';
+import { ResultList } from './components/result-list';
+import { Keymap, KeymapEvents } from './keymap';
+import { type Bookmark } from '@bookmarks-tui/common';
+import { StatusBar } from './components/status-bar';
+import { TUIEventBus, TUIEvents } from './tui-events';
 
 import {
   BoxRenderable,
   InputRenderable,
   InputRenderableEvents,
   CliRenderer,
-} from "@opentui/core";
+} from '@opentui/core';
 
 export class TUI extends BoxRenderable {
   private _renderer: CliRenderer;
@@ -18,41 +19,27 @@ export class TUI extends BoxRenderable {
   private _resultList: ResultList;
   private _statusBar: StatusBar;
 
-  static async create(): Promise<TUI> {
-    const renderer = await createCliRenderer({
-      consoleOptions: {
-        position: ConsolePosition.BOTTOM, // Position on screen
-        sizePercent: 30, // Size as percentage of terminal
-        colorInfo: "#00FFFF", // Color for console.info
-        colorWarn: "#FFFF00", // Color for console.warn
-        colorError: "#FF0000", // Color for console.error
-        startInDebugMode: false, // Show file/line info in logs
-      },
-    });
-    return new TUI(renderer);
-  }
-
-  private constructor(renderer: CliRenderer) {
+  constructor(renderer: CliRenderer) {
     super(renderer, {
-      id: "tui",
-      width: "100%",
-      height: "100%",
+      id: 'tui',
+      width: '100%',
+      height: '100%',
       border: false,
     });
 
     this._renderer = renderer;
 
     this._searchBox = new BoxRenderable(renderer, {
-      id: "search-box",
-      width: "100%",
+      id: 'search-box',
+      width: '100%',
       height: 3,
       border: true,
-      title: "Search",
+      title: 'Search',
     });
     this._searchInput = new InputRenderable(renderer, {
-      id: "search-input",
-      width: "100%",
-      placeholder: "bookmark name",
+      id: 'search-input',
+      width: '100%',
+      placeholder: 'bookmark name',
     });
     this._statusBar = new StatusBar(renderer);
     this._resultList = new ResultList(renderer);
@@ -65,10 +52,13 @@ export class TUI extends BoxRenderable {
     this._searchInput.focus();
 
     this._searchInput.on(InputRenderableEvents.INPUT, (query: string) => {
-      EventBus.emit(BookmarkEvents.searchBookmark, query);
+      TUIEventBus.instance.emit(TUIEvents.SearchQueryChanged, query);
     });
-    EventBus.on(KeymapEvents.toggleConsole, () => {
+    Keymap.instance.on(KeymapEvents.toggleConsole, () => {
       renderer.console.toggle();
+    });
+    TUIEventBus.instance.on(TUIEvents.BookmarkSelected, (bookmark) => {
+      this.currentBookmark = bookmark;
     });
   }
 
@@ -76,11 +66,11 @@ export class TUI extends BoxRenderable {
     return this._searchInput.value;
   }
 
-  set searchResults(bookmarks: Bookmark[]) {
+  set bookmarks(bookmarks: Bookmark[]) {
     this._resultList.items = bookmarks;
   }
   resetSearch(): void {
-    this._searchInput.value = "";
+    this._searchInput.value = '';
   }
   set currentBookmark(bookmark: Bookmark | undefined) {
     this._statusBar.currentBookmark = bookmark;
