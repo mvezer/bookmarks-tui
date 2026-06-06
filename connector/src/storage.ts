@@ -1,15 +1,23 @@
 import { BookmarkChange, IChangeStorage } from '@bookmarks-tui/common';
 
-const BOOKMARK_HASK_PREFIX = 'bh-';
+const BOOKMARK_TRACKING_PREFIX = 'track-';
 
-interface IHashStorage {
-  getAllBookmarkHashes(): Promise<{ [key: string]: string }>;
-  setBookmarkHashes(hashes: { [key: string]: string }): Promise<void>;
+export interface BookmarkTrackingPayload {
+  hash: string;
+  modified: number;
+}
+export interface BookmarkTracking {
+  [key: string]: BookmarkTrackingPayload;
 }
 
-export class Storage implements IChangeStorage, IHashStorage {
-  private _bookmarkHashKeys = new Set<string>();
-  private _bookmarkChangeKeys = new Set<string>();
+export interface IBookmarkTrackingStorage {
+  getAllBookmarkTracking(): Promise<BookmarkTracking>;
+  setBookmarkTracking(tracking: BookmarkTracking): Promise<void>;
+}
+
+export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
+  private _bookmarkIds = new Set<string>();
+  private _bookmarkChangeIds = new Set<string>();
 
   constructor() {}
 
@@ -18,31 +26,32 @@ export class Storage implements IChangeStorage, IHashStorage {
   async init(): Promise<void> {
     const keys = await chrome.storage.local.getKeys();
     keys.forEach((key) => {
-      if (key.startsWith(BOOKMARK_HASK_PREFIX)) {
-        this._bookmarkHashKeys.add(key);
+      if (key.startsWith(BOOKMARK_TRACKING_PREFIX)) {
+        this._bookmarkIds.add(key);
       } else {
-        this._bookmarkChangeKeys.add(key);
+        this._bookmarkChangeIds.add(key);
       }
     });
     this._isInitialized = true;
   }
 
-  async getAllBookmarkHashes(): Promise<{ [key: string]: string }> {
+  async getAllBookmarkTracking(): Promise<BookmarkTracking> {
     if (!this._isInitialized) {
       await this.init();
     }
-    if (this._bookmarkHashKeys.size === 0) {
+    if (this._bookmarkIds.size === 0) {
       return {};
     }
-    const hashes = await chrome.storage.local.get<{
-      [key: string]: string;
-    }>(Array.from(this._bookmarkHashKeys));
-    if (hashes === undefined) {
+    const trackingEntries = await chrome.storage.local.get<BookmarkTracking>(
+      Array.from(this._bookmarkIds),
+    );
+    if (trackingEntries === undefined) {
       return {};
     }
-    return Object.entries(hashes).reduce(
-      (acc: { [key: string]: string }, [id, hash]) => {
-        acc[id.replace(BOOKMARK_HASK_PREFIX, '')] = hash; // remove the key prefix
+    return Object.entries(trackingEntries).reduce(
+      (acc: BookmarkTracking, [id, trackingPayload]) => {
+        const { hash, modified } = trackingPayload;
+        acc[id.replace(BOOKMARK_TRACKING_PREFIX, '')] = { hash, modified }; // remove the key prefix
         return acc;
       },
       {},
@@ -53,11 +62,11 @@ export class Storage implements IChangeStorage, IHashStorage {
     if (!this._isInitialized) {
       await this.init();
     }
-    if (this._bookmarkChangeKeys.size === 0) {
+    if (this._bookmarkChangeIds.size === 0) {
       return {};
     }
     return chrome.storage.local.get<{ [key: string]: BookmarkChange }>(
-      Array.from(this._bookmarkChangeKeys),
+      Array.from(this._bookmarkChangeIds),
     );
   }
 
@@ -65,11 +74,11 @@ export class Storage implements IChangeStorage, IHashStorage {
     if (!this._isInitialized) {
       await this.init();
     }
-    if (!this._bookmarkChangeKeys.has(changeId)) {
+    if (!this._bookmarkChangeIds.has(changeId)) {
       return false;
     }
     await chrome.storage.local.remove(changeId);
-    this._bookmarkChangeKeys.delete(changeId);
+    this._bookmarkChangeIds.delete(changeId);
     return true;
   }
 
@@ -81,24 +90,25 @@ export class Storage implements IChangeStorage, IHashStorage {
     }
     await chrome.storage.local.set(change);
     Object.keys(change).forEach((key) => {
-      this._bookmarkChangeKeys.add(key);
+      this._bookmarkChangeIds.add(key);
     });
   }
 
-  async setBookmarkHashes(hashes: { [key: string]: string }): Promise<void> {
+  async setBookmarkTracking(tracking: BookmarkTracking): Promise<void> {
     if (!this._isInitialized) {
       await this.init();
     }
-    const storageHashes = Object.entries(hashes).reduce(
-      (acc: { [key: string]: string }, [id, hash]) => {
-        acc[`${BOOKMARK_HASK_PREFIX}${id}`] = hash;
+    const trackingInfo = Object.entries(tracking).reduce(
+      (acc: BookmarkTracking, [id, trackingPayload]) => {
+        const { hash, modified } = trackingPayload;
+        acc[`${BOOKMARK_TRACKING_PREFIX}${id}`] = { hash, modified };
         return acc;
       },
       {},
     );
-    await chrome.storage.local.set(storageHashes);
-    Object.keys(hashes).forEach((key) => {
-      this._bookmarkHashKeys.add(key);
+    await chrome.storage.local.set(trackingInfo);
+    Object.keys(tracking).forEach((key) => {
+      this._bookmarkIds.add(key);
     });
   }
 }

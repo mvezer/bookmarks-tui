@@ -4,18 +4,22 @@ import {
   isFromTuiApp,
   createBookmark,
   BookmarkChange,
-  ReverseLookupdMap,
   BookmarkChangeRepository,
   isBoookmarkChange,
   BookmarkChangeKind,
+  ReverseLookupFieldMap,
 } from '@bookmarks-tui/common';
-import { Storage } from './storage';
+import { BookmarkTrackingPayload, Storage } from './storage';
 
 export type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode & {
   trash?: boolean;
 };
 
-let hashes = new ReverseLookupdMap<string, string>();
+let tracking = new ReverseLookupFieldMap<
+  string,
+  BookmarkTrackingPayload,
+  'hash'
+>('hash');
 const storage = new Storage();
 let changes: BookmarkChangeRepository = new BookmarkChangeRepository(storage);
 
@@ -30,8 +34,7 @@ let lastHostStatus: HostStatus = HostStatus.Unknown;
 let isInitialized = false;
 
 // TODO: figure out a better way to prevent syncing
-// This set holds the ids we do not want to sync. It's used when receiving sync iformation and apply the changse
-// but we don't want these changes to be synced back to the host
+// The `ignoreSyncIds` set holds the ids of the bookmarks we don't want to sync (It's used when receiving change information and applying sync)
 const ignoreSyncIds = new Set<string>();
 
 const HOST = `http://localhost:${PORT}`;
@@ -57,7 +60,7 @@ async function getAllBookmarks(): Promise<Bookmark[]> {
     // filter out deleted bookmarks
     if (node.children && !node.trash) {
       stack.push(...node.children);
-      // TODO: check if this  "else if" is needed here
+      // TODO: check if this "else if" is actually needed here
     } else if (node.url !== undefined && node.url.length > 0) {
       bookmarks.push(
         createBookmark({ title: node.title, url: node.url, id: node.id }),
@@ -93,19 +96,21 @@ const isHostAlive = async (): Promise<boolean> => {
 export const init = async (): Promise<void> => {
   if (!isInitialized) {
     const chromeBookmarks = await getAllBookmarks();
-    hashes = new ReverseLookupdMap<string, string>(
-      Object.entries(await storage.getAllBookmarkHashes()),
-    );
+    tracking = new ReverseLookupFieldMap<
+      string,
+      BookmarkTrackingPayload,
+      'hash'
+    >('hash', Object.entries(await storage.getAllBookmarkTracking()));
     await changes.init();
-    console.log('hashes', hashes);
-    // these are the bookmarks that are not in the storage
+    // these are the bookmarks that are not tracked yet
     const bookmarksToAdd = chromeBookmarks.filter((b) => {
-      return hashes.get(b.id) !== b.hash;
+      return tracking.get(b.id)?.hash !== b.hash;
     });
-    // add the bookmark changes for syncing
+    // ...so we add their hashes to the storage
     await Promise.all(
       bookmarksToAdd.map(async (b) => {
-        await storage.setBookmarkHashes({ [b.id]: b.hash });
+        const { hash, modified } = b;
+        await storage.setBookmarkTracking({ [b.id]: { hash, modified } });
         await changes.add(b);
       }),
     );
@@ -117,7 +122,8 @@ export const onBookmarkCreated = async (
   bookmarkTreeNode: BookmarkTreeNode,
 ) => {
   const newBookmark = createBookmarkFromTreeNode(bookmarkTreeNode);
-  hashes.set(newBookmark.id, newBookmark.hash);
+  const { hash, modified } = newBookmark;
+  tracking.set(newBookmark.id, { hash, modified });
   if (!ignoreSyncIds.has(newBookmark.id)) {
     changes.add(newBookmark);
   } else {
@@ -131,7 +137,7 @@ export const onBookmarkRemoved = async (bookmarkId: string) => {
   } else {
     ignoreSyncIds.delete(bookmarkId);
   }
-  hashes.delete(bookmarkId);
+  tracking.delete(bookmarkId);
 };
 
 export const onBookmarkChanged = async (
@@ -142,8 +148,9 @@ export const onBookmarkChanged = async (
     ...bookmarkChangedData,
     id: bookmarkId,
   });
-  hashes.delete(bookmarkId);
-  hashes.set(bookmarkId, bookmark.hash);
+  tracking.delete(bookmarkId);
+  const { hash, modified } = bookmark;
+  tracking.set(bookmarkId, { hash, modified });
   if (!ignoreSyncIds.has(bookmarkId)) {
     changes.add(bookmark);
   } else {
@@ -185,7 +192,6 @@ export const updateIcon = async (isAlive: boolean): Promise<void> => {
 };
 
 const sync = async (): Promise<void> => {
-  console.log('sync', changes.getAllchanges());
   try {
     // send the sync data to the server and check if there's sync data coming back
     const response = await fetch(new URL('sync/chrome', HOST).toString(), {
@@ -235,8 +241,8 @@ const requestSync = async (): Promise<void> => {
       const [changeId, change] = ic;
       if (change.kind === BookmarkChangeKind.Add) {
         const { kind, timestamp, ...bookmark } = change;
-        if (isFromTuiApp(bookmark.id) || !hashes.has(bookmark.id)) {
-          // we create a new bookmark
+        if (isFromTuiApp(bookmark.id) || !tracking.has(bookmark.id)) {
+          // we create the bookmark if that was created by the TUI app or if we don't have the tracking info yet
           await chrome.bookmarks.create({
             title: bookmark.title,
             url: bookmark.url,
