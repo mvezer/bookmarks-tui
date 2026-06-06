@@ -71,7 +71,11 @@ const DEFAULT_EXPORT_FORMAT = Format.Html;
 
 export const getUsage = (): string => {
   return `
-Usage: bookmarks-tui [-h, --help] [command command-options]
+Usage (TUI mode): 
+  Without any command or option provided, the TUI will be started.
+
+Usage (CLI mode):
+  bookmarks-tui [-h, --help] [command command-options]
 
 Commands:
   import  Import bookmarks from file
@@ -93,13 +97,13 @@ Export options:
 Examples:
 
   import bookmarks from html file:
-      bookmarks-tui import -f /path/to/bookmarks.html
+    bookmarks-tui import -f /path/to/bookmarks.html
 
   export bookmarks to html file:
-      bookmarks-tui export -f /path/to/bookmarks.html
+    bookmarks-tui export -f /path/to/bookmarks.html
 
   (advanced) use fzf and jq to pick a bookmark:
-      bookmarks-tui export -F json | jq -r '.bookmarks[] | "\(.title)\t\(.url)"' | fzf --delimiter='\t' --with-nth=1 | cut -f2
+    bookmarks-tui export -F json | jq -r '.bookmarks[] | "\(.title)\t\(.url)"' | fzf --delimiter='\t' --with-nth=1 | cut -f2
 `;
 };
 
