@@ -119,6 +119,10 @@ export class BookmarkRepository {
     return this._fuse?.search(query).map((item) => item.item) ?? [];
   }
 
+  get size(): number {
+    return this._bookmarks.size;
+  }
+
   get isInitialized(): boolean {
     return this._isInitialized;
   }

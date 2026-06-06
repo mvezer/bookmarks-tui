@@ -1,10 +1,9 @@
-import { readFileSync } from 'fs';
 import { parse } from 'node-html-parser';
 
-export const ipmortFromHtml = (
-  filePath: string,
+export const getLinksFromHtml = (
+  html: string,
 ): { url: string; title: string }[] => {
-  const htmlObj = parse(readFileSync(filePath, 'utf8'));
+  const htmlObj = parse(html);
   const links = htmlObj.getElementsByTagName('a');
   if (!links) {
     throw new Error('No links found in HTML file');

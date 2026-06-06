@@ -30,7 +30,6 @@ export class BookmarkChangeRepository {
     if (this._isInitialized) {
       return;
     }
-    console.log('init changes');
     if (this._db) {
       const bookmarks = await this._db.getAllBookmarkChanges();
       this._changeMap = new ReverseLookupFieldMap<string, BookmarkChange, 'id'>(

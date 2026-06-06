@@ -19,6 +19,7 @@ export interface IBookmarkStorage {
 const BOOKMARKST_ABLE_DDL = `
 CREATE TABLE IF NOT EXISTS bookmarks (
 	id TEXT(128) NOT NULL,
+  modified INTEGER NOT NULL,
 	title TEXT(512) NOT NULL,
 	hash TEXT(32) NOT NULL,
 	url TEXT(512) NOT NULL,
@@ -30,6 +31,7 @@ const CHANGES_ADD_TABLE_DDL = `CREATE TABLE IF NOT EXISTS changes_add (
 	uuid TEXT(36) NOT NULL,
   timestamp INTEGER NOT NULL,
 	id TEXT(128) NOT NULL,
+  modified INTEGER NOT NULL,
 	title TEXT(512) NOT NULL,
 	hash TEXT(32) NOT NULL,
 	url TEXT(512) NOT NULL,
@@ -57,7 +59,6 @@ export class Db implements IChangeStorage, IBookmarkStorage {
     if (this._isInitialized) {
       return;
     }
-    console.log('init db');
     this._db.query(BOOKMARKST_ABLE_DDL).run();
     this._db.query(CHANGES_ADD_TABLE_DDL).run();
     this._db.query(CHANGES_REMOVE_TABLE_DDL).run();
@@ -125,12 +126,19 @@ export class Db implements IChangeStorage, IBookmarkStorage {
         if (change.kind === BookmarkChangeKind.Add) {
           this._db
             .query(
-              `INSERT INTO changes_add (uuid, timestamp, id, title, hash, url) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (uuid) DO UPDATE SET timestamp = ?, id = ?, title = ?, hash = ?, url = ?`,
+              `INSERT INTO changes_add (uuid, timestamp, id, modified, title, hash, url) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (uuid) DO UPDATE SET timestamp = ?, id = ?, modified = ?, title = ?, hash = ?, url = ?`,
             )
             .run(
               uuid,
               change.timestamp,
               change.id,
+              change.modified,
+              change.title,
+              change.hash,
+              change.url,
+              change.timestamp,
+              change.id,
+              change.modified,
               change.title,
               change.hash,
               change.url,
@@ -186,9 +194,19 @@ export class Db implements IChangeStorage, IBookmarkStorage {
     try {
       this._db
         .query(
-          `INSERT INTO bookmarks (id, title, hash, url) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET title = ?, hash = ?, url = ?`,
+          `INSERT INTO bookmarks (id, modified, title, hash, url) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET modified = ?, title = ?, hash = ?, url = ?`,
         )
-        .run(bookmark.title, bookmark.hash, bookmark.url, bookmark.id);
+        .run(
+          bookmark.id,
+          bookmark.modified,
+          bookmark.title,
+          bookmark.hash,
+          bookmark.url,
+          bookmark.modified,
+          bookmark.title,
+          bookmark.hash,
+          bookmark.url,
+        );
     } catch (e) {
       return Promise.reject(e);
     }
