@@ -31,7 +31,7 @@
       },
     },
     "tui-app": {
-      "name": "bookmarks",
+      "name": "bookmarks-tui-app",
       "dependencies": {
         "@bookmarks-tui/common": "*",
         "@opentui/core": "^0.2.15",
@@ -83,7 +83,7 @@
 
     "array-back": ["array-back@6.2.3", "", {}, "sha512-SGDvmg6QTYiTxCBkYVmThcoa67uLl35pyzRHdpCGBOcqFy6BtwnphoFPk7LhJshD+Yk1Kt35WGWeZPTgwR4Fhw=="],
 
-    "bookmarks": ["bookmarks@workspace:tui-app"],
+    "bookmarks-tui-app": ["bookmarks-tui-app@workspace:tui-app"],
 
     "bookmarks-tui-connector": ["bookmarks-tui-connector@workspace:connector"],
 
