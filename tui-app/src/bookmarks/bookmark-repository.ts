@@ -47,37 +47,54 @@ export class BookmarkRepository {
   }
 
   async setBookmark(bookmark: Bookmark, disableChanges = false): Promise<void> {
-    const bookmarkRepositoryState = this.getBookmarkRepositoryState(bookmark);
-    if (bookmarkRepositoryState === BookmarkRepositoryState.Exists) {
+    let exists = false;
+    let idChanged = false;
+    let contentChanged = false;
+
+    const existingBookmark = this._bookmarks.get(bookmark.id);
+    exists = existingBookmark !== undefined;
+    if (exists) {
+      contentChanged = existingBookmark!.hash !== bookmark.hash;
+    } else {
+      if (this._bookmarks.reverseHas(bookmark.hash)) {
+        idChanged = true;
+      }
+    }
+    // the bookmark already exists with the same hash and id - nothing to do
+    if (exists && !contentChanged) {
       return;
     }
-    switch (bookmarkRepositoryState) {
-      case BookmarkRepositoryState.IdChanged:
-        const oldId = this._bookmarks.reverseGetKey(bookmark.hash)!;
-        this._bookmarks.delete(oldId);
-        this._fuse?.remove((b) => b.id === oldId);
-        await this._db?.removeBookmark(oldId);
-        // not storing the change for id changes!
-        // if (!disableChanges) {
-        //   await this.addChangeEntry(oldId);
-        // }
-        await this._db?.setBookmark(bookmark);
-        this._fuse?.add(bookmark);
-        // not storing the change for id changes!
-        // if (!disableChanges) {
-        //   await this.addChangeEntry(bookmark);
-        // }
-        break;
-      case BookmarkRepositoryState.ContentChanged:
-      case BookmarkRepositoryState.NotExists:
+
+    // if the content changed but the existing bookmark is newer than the incoming one - we don't do anything
+    if (contentChanged && bookmark.modified < existingBookmark!.modified) {
+      return;
+    }
+
+    // we delete the old bookmark and add the new one
+    // we don's report the change for id changes
+    if (idChanged) {
+      const existingId = this._bookmarks.reverseGetKey(bookmark.hash)!;
+      // remove the old bookmark (with the old id)
+      this._bookmarks.delete(existingId);
+      await this._db?.removeBookmark(existingId);
+      // add the new bookmark
+      this._bookmarks.set(bookmark.id, bookmark);
+      await this._db?.setBookmark(bookmark);
+      // update fuse
+      this._fuse?.remove((b) => b.id === existingId);
+      this._fuse?.add(bookmark);
+
+      // the bookmark is brand new or the content changed
+    } else {
+      if (contentChanged) {
         this._fuse?.remove((b) => b.id === bookmark.id);
-        this._bookmarks.set(bookmark.id, bookmark);
-        this._fuse?.add(bookmark);
-        await this._db?.setBookmark(bookmark);
-        if (!disableChanges) {
-          await this._changes.add(bookmark);
-        }
-        break;
+      }
+      this._bookmarks.set(bookmark.id, bookmark);
+      await this._db?.setBookmark(bookmark);
+      this._fuse?.add(bookmark);
+      if (!disableChanges) {
+        await this._changes.add(bookmark);
+      }
     }
   }
 
@@ -87,8 +104,8 @@ export class BookmarkRepository {
   ): Promise<void> {
     if (this._bookmarks.has(bookmarkId)) {
       this._bookmarks.delete(bookmarkId);
-      this._fuse?.remove((b) => b.id === bookmarkId);
       await this._db?.removeBookmark(bookmarkId);
+      this._fuse?.remove((b) => b.id === bookmarkId);
       if (!disableChanges) {
         await this._changes.add(bookmarkId);
       }
@@ -97,22 +114,6 @@ export class BookmarkRepository {
 
   get bookmarks(): MapIterator<Bookmark> {
     return this._bookmarks.values();
-  }
-
-  getBookmarkRepositoryState(bookmark: Bookmark): BookmarkRepositoryState {
-    let state = BookmarkRepositoryState.NotExists;
-
-    const entry = this._bookmarks.get(bookmark.id);
-    if (entry) {
-      if (entry.hash === bookmark.hash) {
-        state = BookmarkRepositoryState.Exists;
-      } else {
-        state = BookmarkRepositoryState.ContentChanged;
-      }
-    } else if (this._bookmarks.reverseHas(bookmark.hash)) {
-      state = BookmarkRepositoryState.IdChanged;
-    }
-    return state;
   }
 
   search(query: string): Bookmark[] {
