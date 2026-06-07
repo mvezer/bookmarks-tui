@@ -4,6 +4,7 @@ import {
   BookmarkChangeRepository,
   createBookmark,
   isBookmark,
+  createBookmarkHash,
 } from '@bookmarks-tui/common';
 import { Db } from './bookmarks/db';
 import { getLinksFromHtml } from './utils/html-parser';
@@ -166,7 +167,13 @@ export const importBookmarks = async (
     }
     const fileContent = readFileSync(filePath, 'utf8');
     if (format === Format.Html) {
-      const links = getLinksFromHtml(fileContent);
+      let links = getLinksFromHtml(fileContent);
+      // don't add identical bookmarks (if don't explicitly want to do that)
+      if (!importOptions.ignoreHash) {
+        links = links.filter(
+          (l) => !bookmarkRepository.getBookmarkByHash(createBookmarkHash(l)),
+        );
+      }
       await Promise.all(
         links.map((l) => bookmarkRepository.setBookmark(createBookmark(l))),
       );

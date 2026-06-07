@@ -126,4 +126,12 @@ export class BookmarkRepository {
   get isInitialized(): boolean {
     return this._isInitialized;
   }
+
+  getBookmarkByHash(hash: string): Bookmark | undefined {
+    return this._bookmarks.reverseGet(hash);
+  }
+
+  getBookmark(id: string): Bookmark | undefined {
+    return this._bookmarks.get(id);
+  }
 }
