@@ -1,4 +1,3 @@
-import { createCliRenderer, ConsolePosition } from '@opentui/core';
 import { ResultList } from './components/result-list';
 import { Keymap, KeymapEvents } from './keymap';
 import { type Bookmark } from '@bookmarks-tui/common';
@@ -11,6 +10,7 @@ import {
   InputRenderableEvents,
   CliRenderer,
 } from '@opentui/core';
+import { helpDialog } from './components/help-dialog';
 
 export class TUI extends BoxRenderable {
   private _renderer: CliRenderer;
@@ -63,6 +63,11 @@ export class TUI extends BoxRenderable {
 
     Keymap.instance.on(KeymapEvents.resetSearch, () => {
       this.resetSearch();
+    });
+
+    Keymap.instance.on(KeymapEvents.help, () => {
+      console.log('help');
+      helpDialog(renderer);
     });
   }
 

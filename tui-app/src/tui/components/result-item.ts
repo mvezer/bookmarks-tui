@@ -3,13 +3,13 @@ import {
   CliRenderer,
   TextRenderable,
   RGBA,
-} from "@opentui/core";
-import { type Bookmark } from "@bookmarks-tui/common";
+} from '@opentui/core';
+import { type Bookmark } from '@bookmarks-tui/common';
 
-const BG_COLOR_NORMAL = "#00000000";
-const BG_COLOR_SELECTED = "#6c6c6c";
-const FG_COLOR_NORMAL = "#bdbdbd";
-const FG_COLOR_SELECTED = "#00d4c0";
+const BG_COLOR_NORMAL = '#00000000';
+const BG_COLOR_SELECTED = '#6c6c6c';
+const FG_COLOR_NORMAL = '#bdbdbd';
+const FG_COLOR_SELECTED = '#00d4c0';
 
 export class ResultItem extends BoxRenderable {
   private _selected = false;
@@ -20,7 +20,7 @@ export class ResultItem extends BoxRenderable {
   ) {
     super(renderer, {
       id: `result-item-${_bookmark.id}`,
-      width: "100%",
+      width: '100%',
       height: 1,
     });
     this._text = new TextRenderable(renderer, {

@@ -15,10 +15,10 @@ export class ResultList extends ScrollBoxRenderable {
       scrollY: true,
       viewportCulling: true,
     });
-    Keymap.instance.on(KeymapEvents.moveUp, () => {
+    Keymap.instance.on(KeymapEvents.nextBookmark, () => {
       this.prevItem();
     });
-    Keymap.instance.on(KeymapEvents.moveDown, () => {
+    Keymap.instance.on(KeymapEvents.previousBookmark, () => {
       this.nextItem();
     });
     Keymap.instance.on(KeymapEvents.bookmarkAction, () => {
