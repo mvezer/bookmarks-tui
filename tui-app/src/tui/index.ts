@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { ResultList } from './components/result-list';
 import { Keymap, KeymapEvents } from './keymap';
 import { type Bookmark } from '@bookmarks-tui/common';

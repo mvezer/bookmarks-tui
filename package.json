@@ -8,10 +8,14 @@
   },
   "private": true,
   "type": "module",
+  "bin": {
+    "bookmarks-tui": "./tui-app/src/index.ts"
+  },
   "scripts": {
     "start": "bun run tui-app/src/index.ts",
     "dev": "bun run --watch tui-app/src/index.ts",
-    "build:connector": "rm -rf connector/dist && bun build ./connector/src/background.ts --outdir ./connector/dist && bun build ./connector/src/popup.ts --outdir ./connector/dist"
+    "build:connector": "rm -rf connector/dist && bun build ./connector/src/background.ts --outdir ./connector/dist && bun build ./connector/src/popup.ts --outdir ./connector/dist",
+    "build:tui": "bun build --compile --minify ./tui-app/src/index.ts --outfile bookmarks-tui"
   },
   "workspaces": [
     "common",
