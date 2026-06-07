@@ -60,6 +60,10 @@ export class TUI extends BoxRenderable {
     TUIEventBus.instance.on(TUIEvents.BookmarkSelected, (bookmark) => {
       this.currentBookmark = bookmark;
     });
+
+    Keymap.instance.on(KeymapEvents.resetSearch, () => {
+      this.resetSearch();
+    });
   }
 
   get searchQuery(): string {
@@ -70,7 +74,10 @@ export class TUI extends BoxRenderable {
     this._resultList.items = bookmarks;
   }
   resetSearch(): void {
-    this._searchInput.value = '';
+    if (this._searchInput.value !== '') {
+      this._searchInput.value = '';
+      TUIEventBus.instance.emit(TUIEvents.SearchQueryChanged);
+    }
   }
   set currentBookmark(bookmark: Bookmark | undefined) {
     this._statusBar.currentBookmark = bookmark;

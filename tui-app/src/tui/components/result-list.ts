@@ -21,7 +21,7 @@ export class ResultList extends ScrollBoxRenderable {
     Keymap.instance.on(KeymapEvents.moveDown, () => {
       this.nextItem();
     });
-    Keymap.instance.on(KeymapEvents.enter, () => {
+    Keymap.instance.on(KeymapEvents.bookmarkAction, () => {
       TUIEventBus.instance.emit(
         TUIEvents.BookmarkActionRequest,
         this.selectedBookmark,

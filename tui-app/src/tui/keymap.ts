@@ -12,13 +12,12 @@ export enum KeymapEvents {
   halfPageDown = 'halfPageDown',
   pageDown = 'pageDown',
   pageUp = 'pageUp',
-  enter = 'enter',
-  delete = 'delete',
+  bookmarkAction = 'bookmarkAction',
   deleteBookmark = 'deleteBookmark',
   yPressed = 'yPressed',
   nPressed = 'nPressed',
-  escPressed = 'escPressed',
   help = 'help',
+  resetSearch = 'resetSearch',
 }
 export type TKeymap = ReturnType<typeof createOpenTuiKeymap>;
 
@@ -34,10 +33,10 @@ const keyBindings: Array<{ key: string; event: KeymapEvents }> = [
   { key: 'ctrl+f', event: KeymapEvents.pageDown },
   { key: 'ctrl+h', event: KeymapEvents.help },
   { key: 'end', event: KeymapEvents.halfPageDown },
-  { key: 'return', event: KeymapEvents.enter },
+  { key: 'return', event: KeymapEvents.bookmarkAction },
   { key: 'y', event: KeymapEvents.yPressed },
   { key: 'n', event: KeymapEvents.nPressed },
-  { key: 'escape', event: KeymapEvents.quit },
+  { key: 'escape', event: KeymapEvents.resetSearch },
 ];
 
 export class Keymap extends EventEmitter {
