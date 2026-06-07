@@ -100,17 +100,16 @@ export class Db implements IChangeStorage, IBookmarkStorage {
   }
 
   async removeBookmarkChange(changeId: string): Promise<boolean> {
-    console.log('deleting change', changeId, ' from db');
     await this.init();
     try {
       const remove_response = this._db
-        .query(`DELETE FROM changes_remove WHERE uuid = ?`)
+        .query(`DELETE FROM changes_remove WHERE uuid = ? RETURTNING *`)
         .get(changeId);
-      console.log('remove_response', remove_response);
+      console.log(remove_response);
       const add_response = this._db
-        .query(`DELETE FROM changes_add WHERE uuid = ?`)
+        .query(`DELETE FROM changes_add WHERE uuid = ? RETURTNING *`)
         .get(changeId);
-      console.log('add_response', add_response);
+      console.log(add_response);
       return Promise.resolve(true);
     } catch (e) {
       return Promise.reject(e);

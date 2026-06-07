@@ -55,7 +55,6 @@ export const startHttpServer = (handlers: IHttpServerHandlers) => {
       try {
         const processedChangeIds =
           await handlers.onSyncReceived(incomingChanges);
-        console.log({ processedChangeIds });
         respond(res, 200, { processedChangeIds });
       } catch (e: unknown) {
         console.error(e);

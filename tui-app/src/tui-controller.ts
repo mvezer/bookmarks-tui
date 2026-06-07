@@ -6,7 +6,7 @@ import {
 } from '@bookmarks-tui/common';
 import { BookmarkRepository } from './bookmarks/bookmark-repository';
 import Fuse from 'fuse.js';
-import { Db } from './utils/db';
+import { Db } from './bookmarks/db';
 import { TUIEventBus, TUIEvents } from './tui/tui-events';
 
 import { openUrl } from './utils/browser';
@@ -89,7 +89,6 @@ export class TUIController {
         );
       },
       onSyncConfirmed: async (keys: string[]): Promise<void> => {
-        console.log('confirming:', keys);
         await Promise.all(
           keys.map((k) => this._bookmarkChangeRepository.delete(k)),
         );

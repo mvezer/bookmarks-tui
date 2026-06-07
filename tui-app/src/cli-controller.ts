@@ -5,7 +5,7 @@ import {
   createBookmark,
   isBookmark,
 } from '@bookmarks-tui/common';
-import { Db } from './utils/db';
+import { Db } from './bookmarks/db';
 import { getLinksFromHtml } from './utils/html-parser';
 import { generateHtml } from './utils/html-generator';
 
@@ -128,7 +128,6 @@ export const parseCliArgs = (): {
     if (mainOptions.command) {
       throw new Error('Unknown command: ' + mainOptions.command);
     }
-    throw new Error('Unknown option(s): ' + mainOptions?._unknown?.join(', '));
   }
   return {
     mainOptions: mainOptions as unknown as MainOptions,
