@@ -1,7 +1,7 @@
 import { BookmarkChange, IChangeStorage } from '@bookmarks-tui/common';
 
 const BOOKMARK_TRACKING_PREFIX = 'track-';
-const STATS_KEY = 'stats-';
+const STATS_KEY = 'stats';
 
 export interface BookmarkTrackingPayload {
   hash: string;
@@ -44,6 +44,9 @@ export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
   private _isInitialized = false;
 
   async init(): Promise<void> {
+    if (this._isInitialized) {
+      return;
+    }
     const keys = await chrome.storage.local.getKeys();
     keys.forEach((key) => {
       if (key.startsWith(BOOKMARK_TRACKING_PREFIX)) {
@@ -52,6 +55,7 @@ export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
         this._bookmarkChangeIds.add(key);
       }
     });
+    await this.loadStats();
     this._stats.pendingChanges = this._bookmarkChangeIds.size;
     this._stats.bookmarks = this._bookmarkIds.size;
     this._isInitialized = true;
@@ -72,6 +76,9 @@ export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
   }
 
   async saveStats(): Promise<void> {
+    if (!this._isInitialized) {
+      await this.init();
+    }
     try {
       const { changesReceived, changesProcessed, changesSent } = this._stats;
       await chrome.storage.local.set({

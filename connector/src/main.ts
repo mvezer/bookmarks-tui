@@ -93,27 +93,29 @@ export const isHostAlive = async (): Promise<boolean> => {
 };
 
 export const init = async (): Promise<void> => {
-  if (!isInitialized) {
-    const chromeBookmarks = await getAllBookmarks();
-    tracking = new ReverseLookupFieldMap<
-      string,
-      BookmarkTrackingPayload,
-      'hash'
-    >('hash', Object.entries(await storage.getAllBookmarkTracking()));
-    await changes.init();
-    // these are the bookmarks that are not tracked yet
-    const bookmarksToAdd = chromeBookmarks.filter((b) => {
-      return tracking.get(b.id)?.hash !== b.hash;
-    });
-    // ...so we add their hashes to the storage
-    await Promise.all(
-      bookmarksToAdd.map(async (b) => {
-        const { hash, modified } = b;
-        await storage.setBookmarkTracking({ [b.id]: { hash, modified } });
-        await changes.add(b);
-      }),
-    );
+  if (isInitialized) {
+    return;
   }
+  await storage.init();
+  const chromeBookmarks = await getAllBookmarks();
+  tracking = new ReverseLookupFieldMap<string, BookmarkTrackingPayload, 'hash'>(
+    'hash',
+    Object.entries(await storage.getAllBookmarkTracking()),
+  );
+  await changes.init();
+  // these are the bookmarks that are not tracked yet
+  const bookmarksToAdd = chromeBookmarks.filter((b) => {
+    return tracking.get(b.id)?.hash !== b.hash;
+  });
+  // ...so we add their hashes to the storage
+  await Promise.all(
+    bookmarksToAdd.map(async (b) => {
+      const { hash, modified } = b;
+      await storage.setBookmarkTracking({ [b.id]: { hash, modified } });
+      await changes.add(b);
+    }),
+  );
+  isInitialized = true;
 };
 
 export const onBookmarkCreated = async (
