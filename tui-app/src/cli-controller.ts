@@ -118,16 +118,21 @@ export const parseCliArgs = (): {
   let importOptions: CommandLineOptions | undefined;
   let exportOptions: CommandLineOptions | undefined;
   const argv = mainOptions._unknown || [];
-  if (mainOptions.command === Commands.Import) {
-    importOptions = commandLineArgs(importDefinitions, { argv });
-    importOptions.format = importOptions.format || DEFAULT_IMPORT_FORMAT;
-  } else if (mainOptions.command === Commands.Export) {
-    exportOptions = commandLineArgs(exportDefinitions, { argv });
-    exportOptions.format = exportOptions.format || DEFAULT_EXPORT_FORMAT;
-  } else if (!mainOptions.help) {
-    if (mainOptions.command) {
-      throw new Error('Unknown command: ' + mainOptions.command);
+  if (mainOptions.command) {
+    switch (mainOptions.command) {
+      case Commands.Import:
+        importOptions = commandLineArgs(importDefinitions, { argv });
+        importOptions.format = importOptions.format || DEFAULT_IMPORT_FORMAT;
+        break;
+      case Commands.Export:
+        exportOptions = commandLineArgs(exportDefinitions, { argv });
+        exportOptions.format = exportOptions.format || DEFAULT_EXPORT_FORMAT;
+        break;
+      default:
+        throw new Error('Unknown command: ' + mainOptions.command);
     }
+  } else if (!mainOptions.help && mainOptions._unknown !== undefined) {
+    throw new Error('Unknown option(s): ' + mainOptions._unknown.join(', '));
   }
   return {
     mainOptions: mainOptions as unknown as MainOptions,
