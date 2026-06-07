@@ -1,24 +1,71 @@
 <!doctype html>
 <html>
+  <script src="./dist/popup.js"></script>
   <head>
     <style>
       body {
-        width: 200px;
         padding: 10px;
       }
-      button {
+      table {
         width: 100%;
-        padding: 10px;
       }
-      #status {
-        margin-top: 10px;
-        font-size: 12px;
+      td {
+        padding: 5px;
+        line-height: 1.5em;
+      }
+      th {
+        padding: 5px;
+        text-align: left;
+      }
+      .statusCaption {
+        text-align: right;
+      }
+      .statusValue {
+        text-align: left;
+        font-weight: bold;
+      }
+      .hostOffline {
+        display: inline-block;
+        padding: 5px;
+        color: lightgray;
+        background-color: red;
+        font-weight: bold;
+      }
+      .hostAlive {
+        display: inline-block;
+        padding: 5px;
+        color: lightgreen;
+        background-color: green;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
-    <button id="saveBtn">Save Current URL</button>
-    <div id="status"></div>
-    <script src="popup.js"></script>
+    <table>
+      <tr>
+        <td class="statusCaption">Bookmarks</td>
+        <td class="statusValue" id="bookmarks"></td>
+      </tr>
+      <tr>
+        <td class="statusCaption">Changes received</td>
+        <td class="statusValue" id="changesReceived"></td>
+      </tr>
+      <tr>
+        <td class="statusCaption">Changes processed</td>
+        <td class="statusValue" id="changesProcessed"></td>
+      </tr>
+      <tr>
+        <td class="statusCaption">Changes sent</td>
+        <td class="statusValue" id="changesSent"></td>
+      </tr>
+      <tr>
+        <td class="statusCaption">Pending changes</td>
+        <td class="statusValue" id="pendingChanges"></td>
+      </tr>
+      <tr>
+        <td class="statusCaption">Host status</td>
+        <td class="statusValue" id="hostStatus"><div class="hostOffline">offline</div></td>
+      </tr>
+    </table>
   </body>
 </html>

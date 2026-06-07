@@ -9,7 +9,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:connector": "rm -rf connector/dist && bun build ./connector/src/background.ts --outdir ./connector/dist"
+    "build:connector": "rm -rf connector/dist && bun build ./connector/src/background.ts --outdir ./connector/dist && bun build ./connector/src/popup.ts --outdir ./connector/dist",
   },
   "workspaces": [
     "common",

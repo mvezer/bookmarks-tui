@@ -1,7 +1,6 @@
 import {
   Bookmark,
   PORT,
-  isFromTuiApp,
   createBookmark,
   BookmarkChange,
   BookmarkChangeRepository,
@@ -84,7 +83,7 @@ async function getAllBookmarks(): Promise<Bookmark[]> {
   return bookmarks;
 }
 
-const isHostAlive = async (): Promise<boolean> => {
+export const isHostAlive = async (): Promise<boolean> => {
   try {
     const response = await fetch(new URL('status', HOST).toString());
     return response.ok;
@@ -124,6 +123,8 @@ export const onBookmarkCreated = async (
   const newBookmark = createBookmarkFromTreeNode(bookmarkTreeNode);
   const { hash, modified } = newBookmark;
   tracking.set(newBookmark.id, { hash, modified });
+  storage.stats.bookmarks++;
+  await storage.saveStats();
   if (!ignoreSyncIds.has(newBookmark.id)) {
     changes.add(newBookmark);
   } else {
@@ -132,6 +133,8 @@ export const onBookmarkCreated = async (
 };
 
 export const onBookmarkRemoved = async (bookmarkId: string) => {
+  storage.stats.bookmarks--;
+  await storage.saveStats();
   if (!ignoreSyncIds.has(bookmarkId)) {
     changes.add(bookmarkId);
   } else {
@@ -201,6 +204,8 @@ const sync = async (): Promise<void> => {
       method: 'POST',
       body: JSON.stringify(Array.from(changes.getAllchanges())),
     });
+    storage.stats.changesSent += changes.size;
+    await storage.saveStats();
     if (response.ok) {
       const res = await response.json();
       const { processedChangeIds } = res;
@@ -237,29 +242,45 @@ const requestSync = async (): Promise<void> => {
     }
 
     const processedChangeIds: string[] = [];
+    storage.stats.changesReceived += incomingChanges.length;
     for (const ic of incomingChanges) {
       const [changeId, change] = ic;
       if (change.kind === BookmarkChangeKind.Add) {
-        const { kind, timestamp, ...bookmark } = change;
-        if (isFromTuiApp(bookmark.id) || !tracking.has(bookmark.id)) {
-          // we create the bookmark if that was created by the TUI app or if we don't have the tracking info yet
+        const idMatch = tracking.get(change.id);
+        const hashMatch = tracking.reverseGet(change.hash);
+        const { kind, timestamp, ...newOrModifiedBookmark } = change;
+        // TODO: fix the sync logic
+        // - if no id match and no hash match -> create
+        // - if id match and no hash match and modified date is newer -> update
+        // - rest is skipped
+        // we create the bookmark if that was created by the TUI app or if we don't have the tracking info for this id yet
+        if (!idMatch && !hashMatch) {
           await chrome.bookmarks.create({
-            title: bookmark.title,
-            url: bookmark.url,
+            title: newOrModifiedBookmark.title,
+            url: newOrModifiedBookmark.url,
           });
-        } else {
-          // we update an existing bookmark
+          // we update the bookmark if the incoming change is newer than the existing one' last modified date
+        } else if (
+          idMatch &&
+          !hashMatch &&
+          idMatch.modified < newOrModifiedBookmark.modified
+        ) {
           try {
-            ignoreSyncIds.add(bookmark.id);
-            await chrome.bookmarks.update(bookmark.id, {
-              title: bookmark.title,
-              url: bookmark.url,
+            ignoreSyncIds.add(newOrModifiedBookmark.id); // we don't want to sync this change back to the host
+            await chrome.bookmarks.update(newOrModifiedBookmark.id, {
+              title: newOrModifiedBookmark.title,
+              url: newOrModifiedBookmark.url,
             });
             processedChangeIds.push(changeId);
           } catch (e) {
-            ignoreSyncIds.delete(bookmark.id);
-            console.info('Could not update bookmark "' + bookmark.id + '"');
+            ignoreSyncIds.delete(newOrModifiedBookmark.id);
+            console.info(
+              'Could not update bookmark "' + newOrModifiedBookmark.id + '"',
+            );
           }
+          // we skip othewise...
+        } else {
+          processedChangeIds.push(changeId); // we just confirm the sync without doing anything
         }
       } else if (change.kind === BookmarkChangeKind.Remove) {
         try {
@@ -273,6 +294,8 @@ const requestSync = async (): Promise<void> => {
         }
       }
     }
+    storage.stats.changesProcessed += processedChangeIds.length;
+    await storage.saveStats();
     await confirmSync(processedChangeIds);
   }
 };

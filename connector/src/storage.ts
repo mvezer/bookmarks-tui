@@ -1,6 +1,7 @@
 import { BookmarkChange, IChangeStorage } from '@bookmarks-tui/common';
 
 const BOOKMARK_TRACKING_PREFIX = 'track-';
+const STATS_KEY = 'stats-';
 
 export interface BookmarkTrackingPayload {
   hash: string;
@@ -8,6 +9,18 @@ export interface BookmarkTrackingPayload {
 }
 export interface BookmarkTracking {
   [key: string]: BookmarkTrackingPayload;
+}
+
+export interface Stats {
+  bookmarks: number;
+  changesReceived: number;
+  changesProcessed: number;
+  changesSent: number;
+  pendingChanges: number;
+}
+
+export interface StoredStats {
+  [STATS_KEY]: Omit<Stats, 'pendingChanges' | 'bookmarks'>;
 }
 
 export interface IBookmarkTrackingStorage {
@@ -18,6 +31,13 @@ export interface IBookmarkTrackingStorage {
 export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
   private _bookmarkIds = new Set<string>();
   private _bookmarkChangeIds = new Set<string>();
+  private _stats: Stats = {
+    bookmarks: 0,
+    pendingChanges: 0,
+    changesReceived: 0,
+    changesProcessed: 0,
+    changesSent: 0,
+  };
 
   constructor() {}
 
@@ -28,11 +48,38 @@ export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
     keys.forEach((key) => {
       if (key.startsWith(BOOKMARK_TRACKING_PREFIX)) {
         this._bookmarkIds.add(key);
-      } else {
+      } else if (key !== STATS_KEY) {
         this._bookmarkChangeIds.add(key);
       }
     });
+    this._stats.pendingChanges = this._bookmarkChangeIds.size;
+    this._stats.bookmarks = this._bookmarkIds.size;
     this._isInitialized = true;
+  }
+
+  async loadStats(): Promise<void> {
+    try {
+      const storedStats = (
+        await chrome.storage.local.get<StoredStats>([STATS_KEY])
+      )?.[STATS_KEY];
+      this._stats = {
+        ...this._stats,
+        ...storedStats,
+      };
+    } catch (e) {
+      console.info('Could not load stats', e);
+    }
+  }
+
+  async saveStats(): Promise<void> {
+    try {
+      const { changesReceived, changesProcessed, changesSent } = this._stats;
+      await chrome.storage.local.set({
+        [STATS_KEY]: { changesProcessed, changesReceived, changesSent },
+      });
+    } catch (e) {
+      console.info('Could not save stats', e);
+    }
   }
 
   async getAllBookmarkTracking(): Promise<BookmarkTracking> {
@@ -110,5 +157,9 @@ export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
     Object.keys(tracking).forEach((key) => {
       this._bookmarkIds.add(key);
     });
+  }
+
+  get stats(): Stats {
+    return this._stats;
   }
 }
