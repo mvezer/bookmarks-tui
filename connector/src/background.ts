@@ -6,9 +6,9 @@ import {
   onBookmarkMoved,
   init,
   type BookmarkTreeNode,
-} from "./main.js";
+} from './main.js';
 
-const INTERVAL_MS = 1000;
+const INTERVAL_MS = 5000;
 
 let heartbeatInterval: ReturnType<typeof setInterval> | undefined;
 
