@@ -25,15 +25,17 @@ export enum KeymapEvents {
 export type TKeymap = ReturnType<typeof createOpenTuiKeymap>;
 
 const DEFAULT_KEY_BINDINGS: Array<{ key: string; event: KeymapEvents }> = [
-  { key: 'up', event: KeymapEvents.nextBookmark },
-  { key: 'down', event: KeymapEvents.previousBookmark },
+  { key: 'up', event: KeymapEvents.previousBookmark },
+  { key: 'down', event: KeymapEvents.nextBookmark },
   { key: 'ctrl+q', event: KeymapEvents.quit },
   { key: 'alt+c', event: KeymapEvents.toggleConsole },
   { key: 'alt+d', event: KeymapEvents.deleteBookmark },
   { key: 'ctrl+u', event: KeymapEvents.halfPageUp },
   { key: 'ctrl+d', event: KeymapEvents.halfPageDown },
   { key: 'ctrl+b', event: KeymapEvents.pageUp },
+  { key: 'pageUp', event: KeymapEvents.pageUp },
   { key: 'ctrl+f', event: KeymapEvents.pageDown },
+  { key: 'pageDown', event: KeymapEvents.pageDown },
   { key: 'alt+h', event: KeymapEvents.help },
   { key: 'end', event: KeymapEvents.goToBottom },
   { key: 'home', event: KeymapEvents.goToTop },

@@ -16,10 +16,28 @@ export class ResultList extends ScrollBoxRenderable {
       viewportCulling: true,
     });
     Keymap.instance.on(KeymapEvents.nextBookmark, () => {
-      this.prevItem();
+      this.nextItem();
     });
     Keymap.instance.on(KeymapEvents.previousBookmark, () => {
-      this.nextItem();
+      this.prevItem();
+    });
+    Keymap.instance.on(KeymapEvents.halfPageUp, () => {
+      this.halfPageUp();
+    });
+    Keymap.instance.on(KeymapEvents.halfPageDown, () => {
+      this.halfPageDown();
+    });
+    Keymap.instance.on(KeymapEvents.pageUp, () => {
+      this.pageUp();
+    });
+    Keymap.instance.on(KeymapEvents.pageDown, () => {
+      this.pageDown();
+    });
+    Keymap.instance.on(KeymapEvents.goToTop, () => {
+      this.goToTop();
+    });
+    Keymap.instance.on(KeymapEvents.goToBottom, () => {
+      this.goToBottom();
     });
     Keymap.instance.on(KeymapEvents.bookmarkAction, () => {
       TUIEventBus.instance.emit(
@@ -86,6 +104,31 @@ export class ResultList extends ScrollBoxRenderable {
 
   prevItem() {
     this.selectedIndex--;
+  }
+
+  halfPageUp() {
+    this._applySelected(Math.floor(this.selectedIndex - this.height / 2));
+  }
+
+  halfPageDown() {
+    this._applySelected(Math.floor(this.selectedIndex + this.height / 2));
+  }
+
+  pageUp() {
+    this._applySelected(Math.max(0, this.selectedIndex - this.height));
+  }
+
+  pageDown() {
+    this._applySelected(
+      Math.min(this._items.length - 1, this.selectedIndex + this.height),
+    );
+  }
+
+  goToTop() {
+    this._applySelected(0);
+  }
+  goToBottom() {
+    this._applySelected(this._items.length - 1);
   }
 
   set selectedIndex(value: number) {
