@@ -40,6 +40,7 @@ export class TUIController {
   }
   private async createRenderer(): Promise<CliRenderer> {
     this._renderer = await createCliRenderer({
+      onDestroy: () => process.exit(0),
       consoleOptions: {
         position: ConsolePosition.BOTTOM, // Position on screen
         sizePercent: 30, // Size as percentage of terminal
@@ -138,7 +139,7 @@ export class TUIController {
     );
 
     Keymap.instance.on(KeymapEvents.quit, () => {
-      process.exit(0);
+      this._renderer?.destroy();
     });
 
     if (!this._config.general.disableHttpServer) {

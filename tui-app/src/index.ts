@@ -10,7 +10,7 @@ import {
   type CliResult,
 } from './cli-controller';
 import { TUIController } from './tui-controller';
-import { type Config, parseConfigFileOrDefault } from './config';
+import { parseConfigFileOrDefault } from './config';
 
 let importOptions: ImportOptions | undefined;
 let exportOptions: ExportOptions | undefined;
