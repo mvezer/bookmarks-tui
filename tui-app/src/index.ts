@@ -10,6 +10,7 @@ import {
   type CliResult,
 } from './cli-controller';
 import { TUIController } from './tui-controller';
+import { type Config, parseConfigFileOrDefault } from './config';
 
 let importOptions: ImportOptions | undefined;
 let exportOptions: ExportOptions | undefined;
@@ -40,6 +41,18 @@ try {
     stdout: 'See usage with the -h option',
   };
 }
+
+// TODO: add the cli arg 'configPath' here to override the default config path
+const { config, errors } = parseConfigFileOrDefault();
+if (errors.length > 0) {
+  console.log('Error parsing config file:');
+  console.error('  ' + errors.join('  \n'));
+  process.exit(1);
+}
+console.log(config);
+process.exit(0);
+
+// TODO: parse and merge general config from cli args
 
 if (result) {
   if (result.stderr) {
