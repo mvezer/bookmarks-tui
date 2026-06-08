@@ -1,5 +1,6 @@
-import { BoxRenderable, CliRenderer, type RenderContext } from '@opentui/core';
+import { BoxRenderable, CliRenderer } from '@opentui/core';
 import { Keymap, KeymapEvents } from '../keymap';
+import type { ColorScheme } from '../../colorscheme';
 
 export interface DialogOptions {
   yesHandler?: () => void;
@@ -12,6 +13,7 @@ export abstract class BaseDialog extends BoxRenderable {
 
   constructor(
     protected _renderer: CliRenderer,
+    protected _colorScheme: ColorScheme,
     protected _dialogOptions: DialogOptions,
     ...args: ConstructorParameters<typeof BoxRenderable> extends [
       any,
@@ -20,7 +22,22 @@ export abstract class BaseDialog extends BoxRenderable {
       ? Rest
       : never
   ) {
-    super(_renderer, ...args);
+    const combindedBoxOptions = {
+      width: 'auto',
+      height: 'auto',
+      maxWidth: '80%',
+      border: true,
+      borderStyle: 'double',
+      backgroundColor: _colorScheme.dialogBackground,
+      borderColor: _colorScheme.dialogBorder,
+      position: 'absolute',
+      alignSelf: 'center',
+      top: '25%',
+      paddingX: 4,
+      paddingY: 1,
+      ...args[0],
+    };
+    super(_renderer, combindedBoxOptions as any);
   }
 
   show(): void {

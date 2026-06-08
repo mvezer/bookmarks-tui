@@ -15,6 +15,7 @@ import { TUI } from './tui';
 import { Keymap, KeymapEvents } from './tui/keymap';
 import { createCliRenderer, ConsolePosition, CliRenderer } from '@opentui/core';
 import { type IHttpServerHandlers, startHttpServer } from './utils/http-server';
+import type { Config } from './config';
 
 export class TUIController {
   private _fuse: Fuse<Bookmark>;
@@ -24,7 +25,7 @@ export class TUIController {
   private _tui: TUI | undefined;
   private _renderer: CliRenderer | undefined;
 
-  constructor() {
+  constructor(private _config: Config) {
     this._db = new Db();
     this._fuse = new Fuse<Bookmark>([], {
       keys: ['title'],
@@ -108,9 +109,12 @@ export class TUIController {
     await this._bookmarkRepository.init();
 
     const renderer = await this.createRenderer();
-    Keymap.init(renderer);
+    Keymap.init(renderer, this._config.keymap);
 
-    this._tui = new TUI(renderer);
+    this._tui = new TUI(
+      renderer,
+      this._config.customColorSchemes[this._config.general.colorScheme]!,
+    );
     this.updateSearchResults();
 
     TUIEventBus.instance.on(
@@ -137,6 +141,8 @@ export class TUIController {
       process.exit(0);
     });
 
-    this.startHttpServer();
+    if (!this._config.general.disableHttpServer) {
+      this.startHttpServer();
+    }
   }
 }

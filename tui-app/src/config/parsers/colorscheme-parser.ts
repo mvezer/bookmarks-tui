@@ -1,5 +1,5 @@
 import { parseColor } from '@opentui/core';
-import type { ColorScheme } from './types';
+import type { ColorScheme } from '../../colorscheme';
 
 export const DEFAULT_COLORSCHEME: Record<keyof ColorScheme, string> = {
   background: '#000000',
@@ -16,6 +16,9 @@ export const DEFAULT_COLORSCHEME: Record<keyof ColorScheme, string> = {
   deleteDialogBackground: '#000000',
   deleteDialogForeground: '#ffffff',
   deleteDialogBorder: '#ffffff',
+  dialogBackground: '#000000',
+  dialogForeground: '#bdbdbd',
+  dialogBorder: '#bdbdbd',
 };
 
 const ALPHA_VALUES: Record<
@@ -24,35 +27,41 @@ const ALPHA_VALUES: Record<
 > = {
   transparent: {
     background: 0,
-    foreground: 1.0,
-    border: 1.0,
+    foreground: 0xff,
+    border: 0xff,
     searchBackground: 0,
-    searchForeground: 1.0,
-    searchBorder: 1.0,
+    searchForeground: 0xff,
+    searchBorder: 0xff,
     statusBackground: 0,
-    statusForeground: 1.0,
-    statusBorder: 1.0,
-    selectedBackground: 0.6,
-    selectedForeground: 1.0,
-    deleteDialogBackground: 1.0,
-    deleteDialogForeground: 1.0,
-    deleteDialogBorder: 1.0,
+    statusForeground: 0xff,
+    statusBorder: 0xff,
+    selectedBackground: 0x80,
+    selectedForeground: 0xff,
+    deleteDialogBackground: 0xff,
+    deleteDialogForeground: 0xff,
+    deleteDialogBorder: 0xff,
+    dialogBackground: 0x80,
+    dialogForeground: 0x80,
+    dialogBorder: 0x80,
   },
   opaque: {
-    background: 1.0,
-    foreground: 1.0,
-    border: 1.0,
-    searchBackground: 1.0,
-    searchForeground: 1.0,
-    searchBorder: 1.0,
-    statusBackground: 1.0,
-    statusForeground: 1.0,
-    statusBorder: 1.0,
-    selectedBackground: 1.0,
-    selectedForeground: 1.0,
-    deleteDialogBackground: 1.0,
-    deleteDialogForeground: 1.0,
-    deleteDialogBorder: 1.0,
+    background: 0xff,
+    foreground: 0xff,
+    border: 0xff,
+    searchBackground: 0xff,
+    searchForeground: 0xff,
+    searchBorder: 0xff,
+    statusBackground: 0xff,
+    statusForeground: 0xff,
+    statusBorder: 0xff,
+    selectedBackground: 0xff,
+    selectedForeground: 0xff,
+    deleteDialogBackground: 0xff,
+    deleteDialogForeground: 0xff,
+    deleteDialogBorder: 0xff,
+    dialogBackground: 0xff,
+    dialogForeground: 0xff,
+    dialogBorder: 0xff,
   },
 };
 

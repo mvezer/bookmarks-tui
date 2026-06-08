@@ -1,2 +1,2 @@
-export * from './config-parser';
 export * from './types';
+export * from './parsers/config-parser';

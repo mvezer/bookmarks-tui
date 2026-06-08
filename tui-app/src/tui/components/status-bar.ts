@@ -1,21 +1,25 @@
-import type { Bookmark } from "@bookmarks-tui/types";
-import { BoxRenderable, CliRenderer, TextRenderable } from "@opentui/core";
+import type { Bookmark } from '@bookmarks-tui/common';
+import { BoxRenderable, CliRenderer, TextRenderable } from '@opentui/core';
+import type { ColorScheme } from '../../colorscheme';
 
 export class StatusBar extends BoxRenderable {
   private _statusText: TextRenderable;
-  constructor(renderer: CliRenderer) {
+  constructor(renderer: CliRenderer, colorScheme: ColorScheme) {
     super(renderer, {
-      id: "status-bar",
-      width: "100%",
+      id: 'status-bar',
+      width: '100%',
       height: 2,
       bottom: 0,
-      border: ["top"],
+      border: ['top'],
+      backgroundColor: colorScheme.statusBackground,
+      borderColor: colorScheme.statusBorder,
     });
 
     this._statusText = new TextRenderable(renderer, {
-      content: "No bookmarks",
-      width: "100%",
+      content: 'No bookmarks',
+      width: '100%',
       height: 1,
+      fg: colorScheme.statusForeground,
     });
     this.add(this._statusText);
   }
@@ -24,7 +28,7 @@ export class StatusBar extends BoxRenderable {
     if (bookmarkEntry) {
       this._statusText.content = bookmarkEntry.url;
     } else {
-      this._statusText.content = "-";
+      this._statusText.content = '-';
     }
   }
 }

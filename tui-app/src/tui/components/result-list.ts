@@ -5,15 +5,22 @@ import { TUIEventBus, TUIEvents } from '../tui-events';
 import { yesNoDialog } from './yesno-dialog';
 
 import type { Bookmark } from '@bookmarks-tui/common';
+import type { ColorScheme } from '../../colorscheme';
 
 export class ResultList extends ScrollBoxRenderable {
   private _items: ResultItem[] = [];
   private _selectedIndex = 0;
-  constructor(private _renderer: CliRenderer) {
+  constructor(
+    private _renderer: CliRenderer,
+    private _colorScheme: ColorScheme,
+  ) {
     super(_renderer, {
       width: '100%',
       scrollY: true,
       viewportCulling: true,
+      backgroundColor: _colorScheme.background,
+      borderColor: _colorScheme.border,
+      border: [],
     });
     Keymap.instance.on(KeymapEvents.nextBookmark, () => {
       this.nextItem();
@@ -51,7 +58,8 @@ export class ResultList extends ScrollBoxRenderable {
       }
       yesNoDialog(
         this._renderer,
-        `Are you sure you want to delete "${this.selectedBookmark.title}"?`,
+        this._colorScheme,
+        `Are you sure you want to delete "${this.selectedBookmark.title}"? (${this.selectedBookmark.url})`,
         () => {
           TUIEventBus.instance.emit(
             TUIEvents.BookmarkDeleteRequest,
@@ -72,7 +80,7 @@ export class ResultList extends ScrollBoxRenderable {
     this.clear();
 
     for (const b of bookmarks) {
-      const item = new ResultItem(this._renderer, b);
+      const item = new ResultItem(this._renderer, b, this._colorScheme);
       this._items.push(item);
       this.add(item);
     }

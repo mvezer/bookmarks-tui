@@ -49,8 +49,6 @@ if (errors.length > 0) {
   console.error('  ' + errors.join('  \n'));
   process.exit(1);
 }
-console.log(config);
-process.exit(0);
 
 // TODO: parse and merge general config from cli args
 
@@ -65,5 +63,5 @@ if (result) {
 }
 
 // ---- tui mode ----
-const tuiController = new TUIController();
+const tuiController = new TUIController(config);
 await tuiController.init();

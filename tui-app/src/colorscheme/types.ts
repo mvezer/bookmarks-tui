@@ -15,6 +15,9 @@ export interface ColorScheme {
   deleteDialogBackground: RGBA;
   deleteDialogForeground: RGBA;
   deleteDialogBorder: RGBA;
+  dialogBackground: RGBA;
+  dialogForeground: RGBA;
+  dialogBorder: RGBA;
 }
 
 export interface ColorSchemeError {

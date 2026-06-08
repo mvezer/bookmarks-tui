@@ -1,12 +1,10 @@
 import { YAML, TOML } from 'bun';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
-import type { Config } from './types';
-import {
-  type ColorScheme,
-  parseColorScheme,
-  DEFAULT_COLORSCHEME,
-} from '../colorscheme';
+import type { Config } from '../types';
+import type { ColorScheme } from '../../colorscheme';
+import { parseColorScheme, DEFAULT_COLORSCHEME } from './colorscheme-parser.ts';
+import { parseKeymapDefinitions } from './keymap-parser.ts';
 
 const DEFAULT_FILE_NAME = 'bookmarks-tui';
 const DEFAULT_CONFIG_DIRECTORY = `${process.env.HOME}/.config/bookmarks-tui`;
@@ -29,6 +27,7 @@ const DEFAULT_CONFIG: Config = {
     disableHttpServer: false,
     colorScheme: 'default',
   },
+  keymap: [],
   customColorSchemes: {
     default: parseColorScheme(DEFAULT_COLORSCHEME, false).colorScheme!,
   },
@@ -44,6 +43,7 @@ const detectFilePathAndFormat = (): {
         DEFAULT_CONFIG_DIRECTORY,
         `${DEFAULT_FILE_NAME}.${extension}`,
       );
+      console.log(`Checking for config file: ${filePath}`);
       if (existsSync(filePath)) {
         return { filePath, format: format as ALLOWED_FORMATS };
       }
@@ -66,7 +66,7 @@ const inferConfigFormat = (filePath: string): ALLOWED_FORMATS | undefined => {
 
 export const parseConfigFileOrDefault = (
   filePath?: string,
-): { config: Config | undefined; errors: string[] } => {
+): { config: Config; errors: string[] } => {
   let format: ALLOWED_FORMATS | undefined;
   if (!filePath) {
     ({ filePath, format } = detectFilePathAndFormat());
@@ -74,7 +74,7 @@ export const parseConfigFileOrDefault = (
     format = inferConfigFormat(filePath);
     if (!format) {
       return {
-        config: undefined,
+        config: {} as Config,
         errors: [`Could not detect config format from file: ${filePath}`],
       };
     }
@@ -103,15 +103,15 @@ export const parseConfigFileOrDefault = (
       }
     } catch (e) {
       errors.push(`Error parsing config file: ${e}`);
-      return { config: undefined, errors };
+      return { config: {} as Config, errors };
     }
 
     const invalidKeys = Object.keys(configObj).filter(
-      (key) => !['general', 'customColorSchemes'].includes(key),
+      (key) => !['general', 'customColorSchemes', 'keymap'].includes(key),
     );
     if (invalidKeys.length > 0) {
       errors.push(`Invalid config key(s): ${invalidKeys.join(', ')}`);
-      return { config: undefined, errors };
+      return { config: {} as Config, errors };
     }
     if (configObj.general) {
       const invalidGeneralKeys = Object.keys(configObj.general).filter(
@@ -121,7 +121,7 @@ export const parseConfigFileOrDefault = (
         errors.push(
           `Invalid general config keys: ${invalidGeneralKeys.join(', ')}`,
         );
-        return { config: undefined, errors };
+        return { config: {} as Config, errors };
       }
     }
   }
@@ -131,7 +131,7 @@ export const parseConfigFileOrDefault = (
     ...(configObj.general || {}),
   };
 
-  const parsedColorShemes = Object.keys(
+  const parsedColorSchemes = Object.keys(
     configObj.customColorSchemes || {},
   ).reduce(
     (acc, key) => {
@@ -153,7 +153,23 @@ export const parseConfigFileOrDefault = (
 
   parsedConfig.customColorSchemes = {
     ...DEFAULT_CONFIG.customColorSchemes,
-    ...(parsedColorShemes || {}),
+    ...(parsedColorSchemes || {}),
   };
-  return { config: errors.length === 0 ? parsedConfig : undefined, errors };
+
+  const availableColorSchemes = Object.keys(parsedConfig.customColorSchemes);
+  if (!availableColorSchemes.includes(parsedConfig.general.colorScheme)) {
+    errors.push(
+      `Invalid color scheme: ${parsedConfig.general.colorScheme} (available: ${availableColorSchemes.join(', ')})`,
+    );
+  }
+
+  const { keymap, errors: keymapErrors } = parseKeymapDefinitions(
+    configObj.keymap || [],
+  );
+  parsedConfig.keymap = keymap;
+  errors.push(...keymapErrors);
+  return {
+    config: errors.length === 0 ? parsedConfig : ({} as Config),
+    errors,
+  };
 };

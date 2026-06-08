@@ -1,26 +1,20 @@
-import { CliRenderer, TextRenderable, RGBA } from '@opentui/core';
+import { CliRenderer, TextRenderable } from '@opentui/core';
 import { BaseDialog, type DialogOptions } from './base-dialog';
-
-const BG_COLOR_NORMAL = '#aa0000ff';
-const MESSAGE_POSTFIX = '(y)es or (n)o';
+import type { ColorScheme } from '../../colorscheme';
+import { Keymap, KeymapEvents } from '../keymap';
 
 class YesNoDialog extends BaseDialog {
   constructor(
     renderer: CliRenderer,
+    colorScheme: ColorScheme,
     text: string,
     dialogOptions: DialogOptions,
   ) {
-    super(renderer, dialogOptions, {
+    super(renderer, colorScheme, dialogOptions, {
       id: `yesno-dialog`,
-      width: 'auto',
-      height: 5,
-      border: true,
-      borderStyle: 'double',
-      backgroundColor: RGBA.fromHex(BG_COLOR_NORMAL),
-      position: 'absolute',
-      alignSelf: 'center',
+      backgroundColor: colorScheme.deleteDialogBackground,
+      borderColor: colorScheme.deleteDialogBorder,
       top: '50%',
-      paddingX: 2,
     });
 
     this.add(
@@ -31,9 +25,18 @@ class YesNoDialog extends BaseDialog {
         height: 1,
       }),
     );
+    const acceptKey = Keymap.instance.getKeymapDefintionsByEvent(
+      KeymapEvents.dialogYes,
+    )[0]!.key;
+    const declineKey = Keymap.instance.getKeymapDefintionsByEvent(
+      KeymapEvents.dialogNo,
+    )[0]!.key;
+    const cancelKey = Keymap.instance.getKeymapDefintionsByEvent(
+      KeymapEvents.dialogCancel,
+    )[0]!.key;
     this.add(
       new TextRenderable(renderer, {
-        content: MESSAGE_POSTFIX,
+        content: `(${acceptKey}) to confirm, (${declineKey}) to cancel, (${cancelKey}) to close`,
         width: 'auto',
         alignSelf: 'center',
         marginTop: 1,
@@ -45,11 +48,12 @@ class YesNoDialog extends BaseDialog {
 
 export const yesNoDialog = (
   renderer: CliRenderer,
+  colorScheme: ColorScheme,
   text: string,
   onYes: () => void,
   onNo: () => void,
 ): void => {
-  const ynd = new YesNoDialog(renderer, text, {
+  const ynd = new YesNoDialog(renderer, colorScheme, text, {
     yesHandler: onYes,
     noHandler: onNo,
   });

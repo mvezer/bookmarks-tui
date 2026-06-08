@@ -22,8 +22,6 @@ export enum KeymapEvents {
   goToTop = 'goToTop',
   goToBottom = 'goToBottom',
 }
-
-export type TKeymap = ReturnType<typeof createOpenTuiKeymap>;
 export type KeymapDefinition = { key: string; event: KeymapEvents };
 
 const BINDINGS_ACTIONS_HELP: Record<keyof typeof KeymapEvents, string> = {
@@ -48,6 +46,7 @@ const BINDINGS_ACTIONS_HELP: Record<keyof typeof KeymapEvents, string> = {
 
 export class Keymap extends EventEmitter {
   static _instance: Keymap;
+  private _bindings: Array<{ key: string; event: KeymapEvents }>;
 
   static init(
     renderer: CliRenderer,
@@ -60,6 +59,7 @@ export class Keymap extends EventEmitter {
   }
 
   private _dialogMode = false;
+  private _keymapDefintions: KeymapDefinition[] | undefined;
 
   override emit(event: KeymapEvents): boolean {
     if (this._dialogMode && !(event as string).startsWith('dialog')) {
@@ -70,16 +70,19 @@ export class Keymap extends EventEmitter {
 
   private constructor(
     renderer: CliRenderer,
-    private _keymapDefintions: KeymapDefinition[],
+    keymapDefintions: KeymapDefinition[],
   ) {
     super();
+    // TODO: generate bindings from default bindings + config bindings
+    this._keymapDefintions = keymapDefintions || [];
 
+    this._bindings = keymapDefintions;
     const keymap = createOpenTuiKeymap(renderer);
     registerDefaultKeys(keymap);
     const commands = [];
     const bindings = [];
     let i = 0;
-    for (const b of this._keymapDefintions) {
+    for (const b of this._bindings) {
       const cmd = `command_${i++}`;
       const { key, event } = b;
       bindings.push({ key, cmd });
@@ -96,7 +99,7 @@ export class Keymap extends EventEmitter {
       {} as Record<keyof typeof KeymapEvents, string[]>;
     const dialogBindings: Record<keyof typeof KeymapEvents, string[]> =
       {} as Record<keyof typeof KeymapEvents, string[]>;
-    for (const b of this._keymapDefintions) {
+    for (const b of this._bindings) {
       const { key, event } = b;
       if ((event as string).startsWith('dialog')) {
         if (!dialogBindings[event]) {
@@ -143,9 +146,5 @@ export class Keymap extends EventEmitter {
       throw new Error('Keymap not initialized!');
     }
     return Keymap._instance;
-  }
-
-  getKeymapDefintionsByEvent(event: KeymapEvents): KeymapDefinition[] {
-    return this._keymapDefintions.filter((k) => k.event === event);
   }
 }

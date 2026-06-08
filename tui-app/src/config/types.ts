@@ -1,4 +1,5 @@
 import { type ColorScheme } from '../colorscheme';
+import { type KeymapDefinition } from '../keymap/keymap';
 
 export interface GeneralConfig {
   transparentBackground: boolean;
@@ -9,5 +10,6 @@ export interface GeneralConfig {
 
 export interface Config {
   general: GeneralConfig;
+  keymap: KeymapDefinition[];
   customColorSchemes: Record<string, ColorScheme>;
 }

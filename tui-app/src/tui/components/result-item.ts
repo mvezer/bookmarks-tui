@@ -1,15 +1,6 @@
-import {
-  BoxRenderable,
-  CliRenderer,
-  TextRenderable,
-  RGBA,
-} from '@opentui/core';
+import { BoxRenderable, CliRenderer, TextRenderable } from '@opentui/core';
 import { type Bookmark } from '@bookmarks-tui/common';
-
-const BG_COLOR_NORMAL = '#00000000';
-const BG_COLOR_SELECTED = '#6c6c6c';
-const FG_COLOR_NORMAL = '#bdbdbd';
-const FG_COLOR_SELECTED = '#00d4c0';
+import type { ColorScheme } from '../../colorscheme';
 
 export class ResultItem extends BoxRenderable {
   private _selected = false;
@@ -17,6 +8,7 @@ export class ResultItem extends BoxRenderable {
   constructor(
     renderer: CliRenderer,
     private _bookmark: Bookmark,
+    private _colorScheme: ColorScheme,
   ) {
     super(renderer, {
       id: `result-item-${_bookmark.id}`,
@@ -34,12 +26,12 @@ export class ResultItem extends BoxRenderable {
   }
 
   private _applySelected() {
-    this._backgroundColor = RGBA.fromHex(
-      this._selected ? BG_COLOR_SELECTED : BG_COLOR_NORMAL,
-    );
-    this._text.fg = RGBA.fromHex(
-      this._selected ? FG_COLOR_SELECTED : FG_COLOR_NORMAL,
-    );
+    this._backgroundColor = this._selected
+      ? this._colorScheme.selectedBackground
+      : this._colorScheme.background;
+    this._text.fg = this._selected
+      ? this._colorScheme.selectedForeground
+      : this._colorScheme.foreground;
   }
 
   set selected(value: boolean) {
