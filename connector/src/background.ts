@@ -8,17 +8,13 @@ import {
   type BookmarkTreeNode,
 } from './main.js';
 
-const INTERVAL_MS = 5000;
-
 let heartbeatInterval: ReturnType<typeof setInterval> | undefined;
+let alarm;
 
 const run = async () => {
   if (heartbeatInterval !== undefined) {
     return;
   }
-  heartbeatInterval = setInterval(async () => {
-    await heartbeat();
-  }, INTERVAL_MS);
 
   chrome.bookmarks.onCreated.addListener((id, bookmark) => {
     onBookmarkCreated(id, bookmark);
@@ -34,13 +30,21 @@ const run = async () => {
   chrome.bookmarks.onMoved.addListener(async (id, moveInfo) => {
     await onBookmarkMoved(id, moveInfo);
   });
+
+  chrome.alarms.onAlarm.addListener(async () => {
+    await heartbeat();
+  });
+
   await init();
 };
 
 (async () => {
+  alarm = await chrome.alarms.get('bookmarks-tui-connector-heartbeat');
+
+  if (!alarm) {
+    await chrome.alarms.create('bookmarks-tui-connector-heartbeat', {
+      periodInMinutes: 1 / 12,
+    });
+  }
   await run();
 })();
-
-chrome.runtime.onStartup.addListener(async () => {
-  await run();
-});

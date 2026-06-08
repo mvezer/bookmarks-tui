@@ -1,7 +1,7 @@
 import { Storage, type Stats } from './storage';
-import { isHostAlive } from './main';
+import { getHostStatus, HostStatus } from './main';
 
-const updateStatus = (stats: Stats, isAlive: boolean) => {
+const updateStatus = (stats: Stats, hostStatus: HostStatus) => {
   const {
     bookmarks,
     changesReceived,
@@ -32,10 +32,15 @@ const updateStatus = (stats: Stats, isAlive: boolean) => {
   }
 
   const hostStatusElement = document.getElementById('hostStatus');
+
   if (hostStatusElement) {
-    hostStatusElement.innerHTML = isAlive
-      ? '<div class="hostAlive">alive</div>'
-      : '<div class="hostOffline">offline</div>';
+    if (hostStatus === HostStatus.Inactive) {
+      hostStatusElement.innerHTML = '<div class="hostOffline">online</div>';
+    } else if (hostStatus === HostStatus.Alive) {
+      hostStatusElement.innerHTML = '<div class="hostAlive">alive</div>';
+    } else {
+      hostStatusElement.innerHTML = '<div class="hostUnknown">unknown</div>';
+    }
   }
 };
 
@@ -43,5 +48,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   const storage = new Storage();
   await storage.init();
   await storage.loadStats();
-  updateStatus(storage.stats, await isHostAlive());
+  updateStatus(storage.stats, await getHostStatus());
 });

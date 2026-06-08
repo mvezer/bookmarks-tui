@@ -22,7 +22,7 @@ let tracking = new ReverseLookupFieldMap<
 const storage = new Storage();
 let changes: BookmarkChangeRepository = new BookmarkChangeRepository(storage);
 
-enum HostStatus {
+export enum HostStatus {
   Unknown,
   Alive,
   Inactive,
@@ -83,16 +83,20 @@ async function getAllBookmarks(): Promise<Bookmark[]> {
   return bookmarks;
 }
 
-export const isHostAlive = async (): Promise<boolean> => {
+export const getHostStatus = async (): Promise<HostStatus> => {
   try {
     const response = await fetch(new URL('status', HOST).toString());
-    return response.ok;
+    if (response.ok) {
+      return HostStatus.Alive;
+    }
+    return HostStatus.Inactive;
   } catch (e) {
-    return false;
+    return HostStatus.Inactive;
   }
 };
 
 export const init = async (): Promise<void> => {
+  lastHostStatus = HostStatus.Unknown;
   if (isInitialized) {
     return;
   }
@@ -182,8 +186,8 @@ export const onBookmarkMoved = async (
   }
 };
 
-export const updateIcon = async (isAlive: boolean): Promise<void> => {
-  if (!isAlive) {
+export const updateIcon = async (hostStatus: HostStatus): Promise<void> => {
+  if (hostStatus === HostStatus.Inactive || hostStatus === HostStatus.Unknown) {
     chrome.action.setIcon(
       { path: '/icon/bookmarks-tui-connector-inactive-48px.png' },
       () => {},
@@ -317,14 +321,12 @@ const confirmSync = async (processedChangeIds: string[]): Promise<void> => {
 };
 
 export const heartbeat = async (): Promise<void> => {
-  const isAlive = await isHostAlive();
-  if (isAlive && lastHostStatus !== HostStatus.Alive) {
-    await updateIcon(true);
-  } else if (!isAlive && lastHostStatus !== HostStatus.Inactive) {
-    await updateIcon(false);
+  const currentHostStatus = await getHostStatus();
+  if (currentHostStatus !== lastHostStatus) {
+    await updateIcon(currentHostStatus);
   }
-  lastHostStatus = isAlive ? HostStatus.Alive : HostStatus.Inactive;
-  if (isAlive) {
+  lastHostStatus = currentHostStatus;
+  if (currentHostStatus === HostStatus.Alive) {
     if (changes.size > 0) {
       await sync();
     }
