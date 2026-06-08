@@ -14,7 +14,7 @@ import { parseConfigFileOrDefault } from './config';
 
 let importOptions: ImportOptions | undefined;
 let exportOptions: ExportOptions | undefined;
-let mainOptions: MainOptions;
+let mainOptions: MainOptions | undefined;
 let result: CliResult | undefined;
 
 try {
@@ -43,7 +43,7 @@ try {
 }
 
 // TODO: add the cli arg 'configPath' here to override the default config path
-const { config, errors } = parseConfigFileOrDefault();
+const { config, errors } = parseConfigFileOrDefault(mainOptions);
 if (errors.length > 0) {
   console.log('Error parsing config file:');
   console.error('  ' + errors.join('  \n'));

@@ -31,6 +31,10 @@ export enum Format {
 const mainDefinitions = [
   { name: 'command', type: String, defaultOption: true },
   { name: 'help', alias: 'h', type: Boolean },
+  { name: 'colorScheme', type: String },
+  { name: 'transparent', alias: 't', type: Boolean },
+  { name: 'disableHttpServer', alias: 'd', type: Boolean },
+  { name: 'configPath', alias: 'c', type: String },
 ];
 
 const exportDefinitions = [
@@ -65,6 +69,10 @@ export interface ImportOptions extends ExportOptions {
 export interface MainOptions {
   command?: Commands;
   help?: boolean;
+  colorScheme?: string;
+  transparent?: boolean;
+  disableHttpServer?: boolean;
+  configPath?: string;
 }
 
 const DEFAULT_IMPORT_FORMAT = Format.Html;
@@ -76,14 +84,18 @@ Usage (TUI mode):
   Without any command or option provided, the TUI will be started.
 
 Usage (CLI mode):
-  bookmarks-tui [-h, --help] [command command-options]
+  bookmarks-tui [options] [command] [command-options]
 
 Commands:
   import  Import bookmarks from file
   export  Export bookmarks
 
-Main options:
-  -h, --help            Display this help message
+ Options:
+  -h, --help                      Display this help message
+  -c, --configPath <path>         Path to config file
+      --colorScheme <colorScheme> Color scheme to use
+  -t, --transparent               Use transparent background
+  -d, --disableHttpServer         Disable HTTP server (no sync)
 
 Import options:
   -f, --filePath <path> Path to file to import
@@ -96,7 +108,6 @@ Export options:
 
 
 Examples:
-
   import bookmarks from html file:
     bookmarks-tui import -f /path/to/bookmarks.html
 
@@ -132,7 +143,7 @@ export const parseCliArgs = (): {
       default:
         throw new Error('Unknown command: ' + mainOptions.command);
     }
-  } else if (!mainOptions.help && mainOptions._unknown !== undefined) {
+  } else if (mainOptions._unknown !== undefined) {
     throw new Error('Unknown option(s): ' + mainOptions._unknown.join(', '));
   }
   return {

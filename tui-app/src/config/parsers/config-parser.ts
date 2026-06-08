@@ -5,6 +5,7 @@ import type { Config } from '../types';
 import type { ColorScheme } from '../../colorscheme';
 import { parseColorScheme, DEFAULT_COLORSCHEME } from './colorscheme-parser.ts';
 import { parseKeymapDefinitions } from './keymap-parser.ts';
+import type { MainOptions } from '../../cli-controller';
 
 const DEFAULT_FILE_NAME = 'bookmarks-tui';
 const DEFAULT_CONFIG_DIRECTORY = `${process.env.HOME}/.config/bookmarks-tui`;
@@ -43,7 +44,6 @@ const detectFilePathAndFormat = (): {
         DEFAULT_CONFIG_DIRECTORY,
         `${DEFAULT_FILE_NAME}.${extension}`,
       );
-      console.log(`Checking for config file: ${filePath}`);
       if (existsSync(filePath)) {
         return { filePath, format: format as ALLOWED_FORMATS };
       }
@@ -65,9 +65,10 @@ const inferConfigFormat = (filePath: string): ALLOWED_FORMATS | undefined => {
 };
 
 export const parseConfigFileOrDefault = (
-  filePath?: string,
+  mainOptions?: MainOptions,
 ): { config: Config; errors: string[] } => {
   let format: ALLOWED_FORMATS | undefined;
+  let filePath: string | undefined = mainOptions?.configPath;
   if (!filePath) {
     ({ filePath, format } = detectFilePathAndFormat());
   } else {
@@ -86,7 +87,6 @@ export const parseConfigFileOrDefault = (
   let configObj: any = {};
   const errors: string[] = [];
   if (filePath && format) {
-    console.log(`Using config file: ${filePath} (${format})`);
     const fileContent = readFileSync(filePath, 'utf8');
 
     try {
@@ -131,6 +131,15 @@ export const parseConfigFileOrDefault = (
     ...(configObj.general || {}),
   };
 
+  parsedConfig.general.transparentBackground =
+    mainOptions?.transparent ||
+    parsedConfig.general.transparentBackground ||
+    false;
+
+  parsedConfig.general.disableHttpServer =
+    mainOptions?.disableHttpServer ||
+    parsedConfig.general.disableHttpServer ||
+    false;
   const parsedColorSchemes = Object.keys(
     configObj.customColorSchemes || {},
   ).reduce(
@@ -155,7 +164,8 @@ export const parseConfigFileOrDefault = (
     ...DEFAULT_CONFIG.customColorSchemes,
     ...(parsedColorSchemes || {}),
   };
-
+  parsedConfig.general.colorScheme =
+    mainOptions?.colorScheme || parsedConfig.general.colorScheme || 'default';
   const availableColorSchemes = Object.keys(parsedConfig.customColorSchemes);
   if (!availableColorSchemes.includes(parsedConfig.general.colorScheme)) {
     errors.push(
