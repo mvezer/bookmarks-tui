@@ -146,14 +146,6 @@ export const parseConfigFileOrDefault = (
     mainOptions?.editor ||
     parsedConfig.general.editor ||
     DEFAULT_CONFIG.general.editor;
-  console.log(
-    'editor values',
-    mainOptions?.editor,
-    parsedConfig.general.editor,
-    process.env['EDITOR'],
-    DEFAULT_CONFIG.general.editor,
-  );
-  console.log('config', parsedConfig.general.editor);
   const parsedColorSchemes = Object.keys(
     configObj.customColorSchemes || {},
   ).reduce(

@@ -45,7 +45,6 @@ try {
 // TODO: add the cli arg 'configPath' here to override the default config path
 const { config, errors } = parseConfigFileOrDefault(mainOptions);
 if (errors.length > 0) {
-  console.log('Error parsing config file:');
   console.error('  ' + errors.join('  \n'));
   process.exit(1);
 }

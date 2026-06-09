@@ -4,6 +4,7 @@ import type { ColorScheme } from '../../colorscheme';
 import { Keymap, KeymapEvents } from '../keymap';
 import type { Bookmark } from '@bookmarks-tui/common';
 import { TUIEventBus, TUIEvents } from '../tui-events';
+import { infoToast } from './info-toast';
 
 class DeleteDialog extends BaseDialog {
   constructor(
@@ -13,7 +14,7 @@ class DeleteDialog extends BaseDialog {
     dialogOptions: DialogOptions,
   ) {
     super(renderer, colorScheme, dialogOptions, {
-      id: `yesno-dialog`,
+      id: `delete-dialog`,
       backgroundColor: colorScheme.deleteDialogBackground,
       borderColor: colorScheme.deleteDialogBorder,
       top: '50%',
@@ -55,8 +56,10 @@ export const deleteDialog = (
 ): void => {
   const text = `Are you sure you want to delete "${bookmark.title}"? (${bookmark.url})`;
   const deleteDialog = new DeleteDialog(renderer, colorScheme, text, {
-    yesHandler: () =>
-      TUIEventBus.instance.emit(TUIEvents.BookmarkDeleteRequest, bookmark),
+    yesHandler: () => {
+      TUIEventBus.instance.emit(TUIEvents.BookmarkDeleteRequest, bookmark);
+      infoToast(renderer, colorScheme, 'Bookmark deleted');
+    },
     noHandler: () => {},
   });
   deleteDialog.show();

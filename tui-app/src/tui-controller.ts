@@ -20,6 +20,8 @@ import type { Config } from './config';
 import { openInEditor } from './utils/editor';
 import { deleteDialog } from './tui/components/delete-dialog';
 import { type ColorScheme } from './colorscheme';
+import { createBookmarkHash } from '@bookmarks-tui/common';
+import { infoToast } from './tui/components/info-toast';
 
 export class TUIController {
   private _fuse: Fuse<Bookmark>;
@@ -72,6 +74,12 @@ export class TUIController {
           const { kind, timestamp, ...idOrBookmark } = change;
           try {
             if (kind === BookmarkChangeKind.Add) {
+              if (change.oldId) {
+                // we have id chane!
+                await this._bookmarkRepository.removeBookmark.bind(
+                  this._bookmarkRepository,
+                )(change.oldId, true);
+              }
               await this._bookmarkRepository.setBookmark.bind(
                 this._bookmarkRepository,
               )(idOrBookmark as Bookmark, true);
@@ -119,10 +127,15 @@ export class TUIController {
   async editBookmark(bookmark: Bookmark): Promise<void> {
     try {
       this._renderer?.suspend();
+      const oldHash = createBookmarkHash(bookmark);
       const { title, url } = await openInEditor(
         bookmark,
         this._config.general.editor,
       );
+      const newHash = createBookmarkHash({ title, url });
+      if (oldHash === newHash) {
+        return;
+      }
       const editedBookmark = createBookmark({
         ...bookmark,
         title,
@@ -131,6 +144,11 @@ export class TUIController {
       });
       await this._bookmarkRepository.setBookmark(editedBookmark);
       this.updateSearchResults();
+      infoToast(
+        this._renderer!,
+        this._colorScheme,
+        `Bookmark edited: ${title}`,
+      );
     } catch (e) {
       console.error(e);
     } finally {
@@ -148,6 +166,7 @@ export class TUIController {
       await this._bookmarkRepository.setBookmark(
         createBookmark({ title, url }),
       );
+      infoToast(this._renderer!, this._colorScheme, `Bookmark added: ${title}`);
       this.updateSearchResults();
     } catch (e) {
       console.error(e);

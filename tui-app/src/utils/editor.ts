@@ -6,6 +6,13 @@ import { join } from 'path';
 
 const DEFAULT_EDITOR_COMMAND = 'vi';
 
+// add protocol if missing
+const normalizeUrl = (url: string): string => {
+  const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:\/\//.test(url);
+  const normalized = hasProtocol ? url : `https://${url}`;
+  return normalized;
+};
+
 export const openInEditor = async (
   bookmark?: Bookmark,
   editorCommand: string = process.env['EDITOR'] ?? DEFAULT_EDITOR_COMMAND,
@@ -31,5 +38,5 @@ export const openInEditor = async (
   const title = lines[0]!.trim();
   const url = lines[1]!.trim();
 
-  return { title, url };
+  return { title, url: normalizeUrl(url) };
 };
