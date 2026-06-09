@@ -2,8 +2,10 @@ import { CliRenderer, TextRenderable } from '@opentui/core';
 import { BaseDialog, type DialogOptions } from './base-dialog';
 import type { ColorScheme } from '../../colorscheme';
 import { Keymap, KeymapEvents } from '../keymap';
+import type { Bookmark } from '@bookmarks-tui/common';
+import { TUIEventBus, TUIEvents } from '../tui-events';
 
-class YesNoDialog extends BaseDialog {
+class DeleteDialog extends BaseDialog {
   constructor(
     renderer: CliRenderer,
     colorScheme: ColorScheme,
@@ -46,16 +48,16 @@ class YesNoDialog extends BaseDialog {
   }
 }
 
-export const yesNoDialog = (
+export const deleteDialog = (
   renderer: CliRenderer,
   colorScheme: ColorScheme,
-  text: string,
-  onYes: () => void,
-  onNo: () => void,
+  bookmark: Bookmark,
 ): void => {
-  const ynd = new YesNoDialog(renderer, colorScheme, text, {
-    yesHandler: onYes,
-    noHandler: onNo,
+  const text = `Are you sure you want to delete "${bookmark.title}"? (${bookmark.url})`;
+  const deleteDialog = new DeleteDialog(renderer, colorScheme, text, {
+    yesHandler: () =>
+      TUIEventBus.instance.emit(TUIEvents.BookmarkDeleteRequest, bookmark),
+    noHandler: () => {},
   });
-  ynd.show();
+  deleteDialog.show();
 };

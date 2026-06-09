@@ -18,7 +18,7 @@ import { createCliRenderer, ConsolePosition, CliRenderer } from '@opentui/core';
 import { type IHttpServerHandlers, startHttpServer } from './utils/http-server';
 import type { Config } from './config';
 import { openInEditor } from './utils/editor';
-import { yesNoDialog } from './tui/components/yesno-dialog';
+import { deleteDialog } from './tui/components/delete-dialog';
 import { type ColorScheme } from './colorscheme';
 
 export class TUIController {
@@ -113,15 +113,7 @@ export class TUIController {
   }
 
   async deleteBookmark(bookmark: Bookmark): Promise<void> {
-    yesNoDialog(
-      this._tui!.renderer,
-      this._colorScheme,
-      `Are you sure you want to delete "${bookmark.title}"? (${bookmark.url})`,
-      () => {
-        TUIEventBus.instance.emit(TUIEvents.BookmarkDeleteRequest, bookmark);
-      },
-      () => {},
-    );
+    deleteDialog(this._tui!.renderer, this._colorScheme, bookmark);
   }
 
   async editBookmark(bookmark: Bookmark): Promise<void> {
