@@ -166,6 +166,14 @@ export class Storage implements IChangeStorage, IBookmarkTrackingStorage {
     });
   }
 
+  async removeBookmarkTracking(id: string): Promise<void> {
+    if (!this._isInitialized) {
+      await this.init();
+    }
+    await chrome.storage.local.remove(`${BOOKMARK_TRACKING_PREFIX}${id}`);
+    this._bookmarkIds.delete(id);
+  }
+
   get stats(): Stats {
     return this._stats;
   }

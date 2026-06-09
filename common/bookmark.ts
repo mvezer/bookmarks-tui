@@ -28,6 +28,9 @@ export interface BookmarkRemoveChange {
 export interface BookmarkAddChange extends Bookmark {
   kind: BookmarkChangeKind.Add;
   timestamp: number;
+  // only the connector sets this, when the bookmark was created in the tui and
+  // the connector creates the bookmark in the browser and it syncs back the new id to the tui
+  oldId?: string;
 }
 
 export type BookmarkChange = BookmarkRemoveChange | BookmarkAddChange;

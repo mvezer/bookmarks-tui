@@ -7,6 +7,7 @@ import {
   isBoookmarkChange,
   BookmarkChangeKind,
   ReverseLookupFieldMap,
+  isFromTuiApp,
 } from '@bookmarks-tui/common';
 import { BookmarkTrackingPayload, Storage } from './storage';
 
@@ -32,9 +33,10 @@ let lastHostStatus: HostStatus = HostStatus.Unknown;
 
 let isInitialized = false;
 
-// TODO: figure out a better way to prevent syncing
-// The `ignoreSyncIds` set holds the ids of the bookmarks we don't want to sync (It's used when receiving change information and applying sync)
-const ignoreSyncIds = new Set<string>();
+const recentChanges = new Map<
+  string,
+  { changeKind: BookmarkChangeKind; hash: string | undefined }
+>(); // id -> hash temporary map to prevent the bookmark to be tracked twice and re-synced when syncing
 
 const HOST = `http://localhost:${PORT}`;
 
@@ -126,45 +128,67 @@ export const onBookmarkCreated = async (
   _: string,
   bookmarkTreeNode: BookmarkTreeNode,
 ) => {
-  const newBookmark = createBookmarkFromTreeNode(bookmarkTreeNode);
-  const { hash, modified } = newBookmark;
-  tracking.set(newBookmark.id, { hash, modified });
   storage.stats.bookmarks++;
   await storage.saveStats();
-  if (!ignoreSyncIds.has(newBookmark.id)) {
+  setTimeout(async () => {
+    const newBookmark = createBookmarkFromTreeNode(bookmarkTreeNode);
+    const { hash, modified } = newBookmark;
+    const foundRecentChange = recentChanges.get(newBookmark.id);
+    if (
+      foundRecentChange &&
+      foundRecentChange.changeKind === BookmarkChangeKind.Add &&
+      foundRecentChange.hash === hash
+    ) {
+      recentChanges.delete(newBookmark.id);
+      return;
+    }
+    tracking.set(newBookmark.id, { hash, modified });
+    await storage.setBookmarkTracking({ [newBookmark.id]: { hash, modified } });
     changes.add(newBookmark);
-  } else {
-    ignoreSyncIds.delete(newBookmark.id);
-  }
+  }, 1000); // it's an ugly hack to make sure the bookmark recentChanges entry is created before
 };
 
 export const onBookmarkRemoved = async (bookmarkId: string) => {
   storage.stats.bookmarks--;
   await storage.saveStats();
-  if (!ignoreSyncIds.has(bookmarkId)) {
+  setTimeout(async () => {
+    const foundRecentChange = recentChanges.get(bookmarkId);
+    if (
+      foundRecentChange &&
+      foundRecentChange.changeKind === BookmarkChangeKind.Remove
+    ) {
+      recentChanges.delete(bookmarkId);
+      return;
+    }
     changes.add(bookmarkId);
-  } else {
-    ignoreSyncIds.delete(bookmarkId);
-  }
-  tracking.delete(bookmarkId);
+    tracking.delete(bookmarkId);
+    await storage.removeBookmarkTracking(bookmarkId);
+  }, 1000); // it's an ugly hack to make sure the bookmark recentChanges entry is created before
 };
 
 export const onBookmarkChanged = async (
   bookmarkId: string,
   bookmarkChangedData: Omit<BookmarkTreeNode, 'id'>,
 ) => {
-  const bookmark = createBookmarkFromTreeNode({
-    ...bookmarkChangedData,
-    id: bookmarkId,
-  });
-  tracking.delete(bookmarkId);
-  const { hash, modified } = bookmark;
-  tracking.set(bookmarkId, { hash, modified });
-  if (!ignoreSyncIds.has(bookmarkId)) {
+  setTimeout(async () => {
+    const bookmark = createBookmarkFromTreeNode({
+      ...bookmarkChangedData,
+      id: bookmarkId,
+    });
+    const { hash, modified } = bookmark;
+    const foundRecentChange = recentChanges.get(bookmarkId);
+    if (
+      foundRecentChange &&
+      foundRecentChange.changeKind === BookmarkChangeKind.Add &&
+      foundRecentChange.hash === hash
+    ) {
+      recentChanges.delete(bookmarkId);
+      return;
+    }
     changes.add(bookmark);
-  } else {
-    ignoreSyncIds.delete(bookmarkId);
-  }
+    tracking.set(bookmarkId, { hash, modified });
+    await storage.setBookmarkTracking({ [bookmarkId]: { hash, modified } });
+  }, 1000); // it's an ugly hack to make sure the bookmark recentChanges entry is created before
 };
 
 export const onBookmarkMoved = async (
@@ -255,16 +279,35 @@ const requestSync = async (): Promise<void> => {
         const idMatch = tracking.get(change.id);
         const hashMatch = tracking.reverseGet(change.hash);
         const { kind, timestamp, ...newOrModifiedBookmark } = change;
-        // TODO: fix the sync logic
-        // - if no id match and no hash match -> create
-        // - if id match and no hash match and modified date is newer -> update
-        // - rest is skipped
+
         // we create the bookmark if that was created by the TUI app or if we don't have the tracking info for this id yet
         if (!idMatch && !hashMatch) {
-          await chrome.bookmarks.create({
-            title: newOrModifiedBookmark.title,
-            url: newOrModifiedBookmark.url,
-          });
+          try {
+            const newBookmark = createBookmarkFromTreeNode(
+              await chrome.bookmarks.create({
+                title: newOrModifiedBookmark.title,
+                url: newOrModifiedBookmark.url,
+              }),
+            );
+            const { hash, modified } = newBookmark;
+            recentChanges.set(newBookmark.id, {
+              changeKind: BookmarkChangeKind.Add,
+              hash,
+            });
+            tracking.set(newBookmark.id, { hash, modified });
+            await storage.setBookmarkTracking({
+              [newBookmark.id]: { hash, modified },
+            });
+            if (isFromTuiApp(newOrModifiedBookmark.id)) {
+              // we sync back the id change to the host
+              await changes.add(newBookmark, newOrModifiedBookmark.id);
+            }
+            processedChangeIds.push(changeId);
+          } catch (e) {
+            console.info(
+              'Could not create bookmark "' + newOrModifiedBookmark.id + '"',
+            );
+          }
           // we update the bookmark if the incoming change is newer than the existing one' last modified date
         } else if (
           idMatch &&
@@ -272,14 +315,25 @@ const requestSync = async (): Promise<void> => {
           idMatch.modified < newOrModifiedBookmark.modified
         ) {
           try {
-            ignoreSyncIds.add(newOrModifiedBookmark.id); // we don't want to sync this change back to the host
-            await chrome.bookmarks.update(newOrModifiedBookmark.id, {
-              title: newOrModifiedBookmark.title,
-              url: newOrModifiedBookmark.url,
+            // ignoreSyncIds.add(newOrModifiedBookmark.id); // we don't want to sync this change back to the host
+            const updatedBookmark = createBookmarkFromTreeNode(
+              await chrome.bookmarks.update(newOrModifiedBookmark.id, {
+                title: newOrModifiedBookmark.title,
+                url: newOrModifiedBookmark.url,
+              }),
+            );
+            const { hash, modified } = updatedBookmark;
+            recentChanges.set(updatedBookmark.id, {
+              changeKind: BookmarkChangeKind.Add,
+              hash,
+            });
+            tracking.set(updatedBookmark.id, { hash, modified });
+            await storage.setBookmarkTracking({
+              [updatedBookmark.id]: { hash, modified },
             });
             processedChangeIds.push(changeId);
           } catch (e) {
-            ignoreSyncIds.delete(newOrModifiedBookmark.id);
+            // ignoreSyncIds.delete(newOrModifiedBookmark.id);
             console.info(
               'Could not update bookmark "' + newOrModifiedBookmark.id + '"',
             );
@@ -290,8 +344,15 @@ const requestSync = async (): Promise<void> => {
         }
       } else if (change.kind === BookmarkChangeKind.Remove) {
         try {
-          ignoreSyncIds.add(change.id);
+          // ignoreSyncIds.add(change.id);
           await chrome.bookmarks.remove(change.id);
+          recentChanges.set(change.id, {
+            changeKind: BookmarkChangeKind.Remove,
+            hash: undefined,
+          });
+          tracking.delete(change.id);
+          await storage.removeBookmarkTracking(change.id);
+          // await storage
         } catch (e) {
           console.info('Could not remove bookmark "' + change.id + '"');
         } finally {

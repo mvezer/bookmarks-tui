@@ -40,7 +40,7 @@ export class BookmarkChangeRepository {
     this._isInitialized = true;
   }
 
-  async add(idOrBookmark: string | Bookmark): Promise<void> {
+  async add(idOrBookmark: string | Bookmark, oldId?: string): Promise<void> {
     const id =
       typeof idOrBookmark === 'string' ? idOrBookmark : idOrBookmark.id;
     const existingChangeId = this._changeMap.reverseGetKey(id);
@@ -60,6 +60,7 @@ export class BookmarkChangeRepository {
         : ({
             kind: BookmarkChangeKind.Add,
             timestamp,
+            oldId,
             ...idOrBookmark,
           } as BookmarkAddChange);
     await this._db?.addBookmarkChange({ [changeId]: newChange });

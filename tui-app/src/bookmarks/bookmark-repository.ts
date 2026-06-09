@@ -47,19 +47,9 @@ export class BookmarkRepository {
   }
 
   async setBookmark(bookmark: Bookmark, disableChanges = false): Promise<void> {
-    let exists = false;
-    let idChanged = false;
-    let contentChanged = false;
-
     const existingBookmark = this._bookmarks.get(bookmark.id);
-    exists = existingBookmark !== undefined;
-    if (exists) {
-      contentChanged = existingBookmark!.hash !== bookmark.hash;
-    } else {
-      if (this._bookmarks.reverseHas(bookmark.hash)) {
-        idChanged = true;
-      }
-    }
+    const exists = existingBookmark !== undefined;
+    const contentChanged = existingBookmark && existingBookmark?.hash !== bookmark.hash;
     // the bookmark already exists with the same hash and id - nothing to do
     if (exists && !contentChanged) {
       return;
@@ -70,31 +60,14 @@ export class BookmarkRepository {
       return;
     }
 
-    // we delete the old bookmark and add the new one
-    // we don's report the change for id changes
-    if (idChanged) {
-      const existingId = this._bookmarks.reverseGetKey(bookmark.hash)!;
-      // remove the old bookmark (with the old id)
-      this._bookmarks.delete(existingId);
-      await this._db?.removeBookmark(existingId);
-      // add the new bookmark
-      this._bookmarks.set(bookmark.id, bookmark);
-      await this._db?.setBookmark(bookmark);
-      // update fuse
-      this._fuse?.remove((b) => b.id === existingId);
-      this._fuse?.add(bookmark);
-
-      // the bookmark is brand new or the content changed
-    } else {
-      if (contentChanged) {
-        this._fuse?.remove((b) => b.id === bookmark.id);
-      }
-      this._bookmarks.set(bookmark.id, bookmark);
-      await this._db?.setBookmark(bookmark);
-      this._fuse?.add(bookmark);
-      if (!disableChanges) {
-        await this._changes.add(bookmark);
-      }
+    if (contentChanged) {
+      this._fuse?.remove((b) => b.id === bookmark.id);
+    }
+    this._bookmarks.set(bookmark.id, bookmark);
+    await this._db?.setBookmark(bookmark);
+    this._fuse?.add(bookmark);
+    if (!disableChanges) {
+      await this._changes.add(bookmark);
     }
   }
 
