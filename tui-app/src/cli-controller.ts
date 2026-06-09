@@ -35,6 +35,7 @@ const mainDefinitions = [
   { name: 'transparent', alias: 't', type: Boolean },
   { name: 'disableHttpServer', alias: 'd', type: Boolean },
   { name: 'configPath', alias: 'c', type: String },
+  { name: 'editor', alias: 'e', type: String },
 ];
 
 const exportDefinitions = [
@@ -73,6 +74,7 @@ export interface MainOptions {
   transparent?: boolean;
   disableHttpServer?: boolean;
   configPath?: string;
+  editor?: string;
 }
 
 const DEFAULT_IMPORT_FORMAT = Format.Html;
@@ -96,6 +98,7 @@ Commands:
       --colorScheme <colorScheme> Color scheme to use
   -t, --transparent               Use transparent background
   -d, --disableHttpServer         Disable HTTP server (no sync)
+  -e, --editor <editor>           Editor to use for editing and creating bookmarks
 
 Import options:
   -f, --filePath <path> Path to file to import

@@ -69,6 +69,10 @@ export class TUI extends BoxRenderable {
     this._statusBar.currentBookmark = bookmark;
   }
 
+  get selectedBookmark(): Bookmark | undefined {
+    return this._resultList.selectedBookmark;
+  }
+
   get renderer(): CliRenderer {
     return this._renderer;
   }

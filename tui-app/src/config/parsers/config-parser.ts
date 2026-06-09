@@ -27,6 +27,7 @@ const DEFAULT_CONFIG: Config = {
     urlOpenScript: 'default',
     disableHttpServer: false,
     colorScheme: 'default',
+    editor: 'nano',
   },
   keymap: [],
   customColorSchemes: {
@@ -128,18 +129,31 @@ export const parseConfigFileOrDefault = (
 
   parsedConfig.general = {
     ...DEFAULT_CONFIG.general,
+    ...{ editor: process.env['EDITOR'] || DEFAULT_CONFIG.general.editor },
     ...(configObj.general || {}),
   };
 
   parsedConfig.general.transparentBackground =
     mainOptions?.transparent ||
     parsedConfig.general.transparentBackground ||
-    false;
+    DEFAULT_CONFIG.general.transparentBackground;
 
   parsedConfig.general.disableHttpServer =
     mainOptions?.disableHttpServer ||
     parsedConfig.general.disableHttpServer ||
-    false;
+    DEFAULT_CONFIG.general.disableHttpServer;
+  parsedConfig.general.editor =
+    mainOptions?.editor ||
+    parsedConfig.general.editor ||
+    DEFAULT_CONFIG.general.editor;
+  console.log(
+    'editor values',
+    mainOptions?.editor,
+    parsedConfig.general.editor,
+    process.env['EDITOR'],
+    DEFAULT_CONFIG.general.editor,
+  );
+  console.log('config', parsedConfig.general.editor);
   const parsedColorSchemes = Object.keys(
     configObj.customColorSchemes || {},
   ).reduce(
@@ -165,7 +179,9 @@ export const parseConfigFileOrDefault = (
     ...(parsedColorSchemes || {}),
   };
   parsedConfig.general.colorScheme =
-    mainOptions?.colorScheme || parsedConfig.general.colorScheme || 'default';
+    mainOptions?.colorScheme ||
+    parsedConfig.general.colorScheme ||
+    DEFAULT_CONFIG.general.colorScheme;
   const availableColorSchemes = Object.keys(parsedConfig.customColorSchemes);
   if (!availableColorSchemes.includes(parsedConfig.general.colorScheme)) {
     errors.push(

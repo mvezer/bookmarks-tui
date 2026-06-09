@@ -6,6 +6,8 @@ const DEFAULT_KEYMAP_DEFINITIONS: KeymapDefinition[] = [
   { key: 'ctrl+q', event: KeymapEvents.quit },
   { key: 'alt+c', event: KeymapEvents.toggleConsole },
   { key: 'alt+d', event: KeymapEvents.deleteBookmark },
+  { key: 'ctrl+e', event: KeymapEvents.editBookmark },
+  { key: 'ctrl+n', event: KeymapEvents.newBookmark },
   { key: 'ctrl+u', event: KeymapEvents.halfPageUp },
   { key: 'ctrl+d', event: KeymapEvents.halfPageDown },
   { key: 'ctrl+b', event: KeymapEvents.pageUp },

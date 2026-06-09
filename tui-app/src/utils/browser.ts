@@ -1,18 +1,19 @@
 // default behavior - opens the url in the default browser
-const getOpenerBinary = (): string => {
+const getDefaultCommand = (): string => {
   if (process.platform === 'darwin') {
     return 'open';
+  } else {
+    // linux
+    return 'xdg-open';
   }
-  if (process.platform === 'win32') {
-    return 'start';
-  }
-  return 'xdg-open';
 };
-export const openUrl = (url: string): void => {
+// string split respecting quotes
+export const openUrl = (url: string, urlOpenCommand?: string): void => {
   if (!url) {
     return;
   }
-  Bun.spawn([getOpenerBinary(), url], {
+  const command = urlOpenCommand || getDefaultCommand();
+  Bun.spawn([command, url], {
     stdio: ['ignore', 'ignore', 'ignore'],
   });
 };

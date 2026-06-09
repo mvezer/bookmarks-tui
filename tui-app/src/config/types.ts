@@ -1,11 +1,12 @@
 import { type ColorScheme } from '../colorscheme';
-import { type KeymapDefinition } from '../keymap/keymap';
+import { type KeymapDefinition } from '../tui/keymap';
 
 export interface GeneralConfig {
   transparentBackground: boolean;
   urlOpenScript: string;
   disableHttpServer: boolean;
   colorScheme: string;
+  editor: string;
 }
 
 export interface Config {

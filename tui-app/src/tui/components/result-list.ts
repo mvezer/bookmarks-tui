@@ -52,23 +52,6 @@ export class ResultList extends ScrollBoxRenderable {
         this.selectedBookmark,
       );
     });
-    Keymap.instance.on(KeymapEvents.deleteBookmark, () => {
-      if (!this.selectedBookmark) {
-        return;
-      }
-      yesNoDialog(
-        this._renderer,
-        this._colorScheme,
-        `Are you sure you want to delete "${this.selectedBookmark.title}"? (${this.selectedBookmark.url})`,
-        () => {
-          TUIEventBus.instance.emit(
-            TUIEvents.BookmarkDeleteRequest,
-            this.selectedBookmark,
-          );
-        },
-        () => {},
-      );
-    });
   }
 
   clear() {

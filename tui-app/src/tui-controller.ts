@@ -3,6 +3,7 @@ import {
   type Bookmark,
   BookmarkChangeRepository,
   BookmarkChangeKind,
+  createBookmark,
 } from '@bookmarks-tui/common';
 import { BookmarkRepository } from './bookmarks/bookmark-repository';
 import Fuse from 'fuse.js';
@@ -16,6 +17,9 @@ import { Keymap, KeymapEvents } from './tui/keymap';
 import { createCliRenderer, ConsolePosition, CliRenderer } from '@opentui/core';
 import { type IHttpServerHandlers, startHttpServer } from './utils/http-server';
 import type { Config } from './config';
+import { openInEditor } from './utils/editor';
+import { yesNoDialog } from './tui/components/yesno-dialog';
+import { type ColorScheme } from './colorscheme';
 
 export class TUIController {
   private _fuse: Fuse<Bookmark>;
@@ -24,6 +28,7 @@ export class TUIController {
   private _bookmarkRepository: BookmarkRepository;
   private _tui: TUI | undefined;
   private _renderer: CliRenderer | undefined;
+  private _colorScheme: ColorScheme;
 
   constructor(private _config: Config) {
     this._db = new Db();
@@ -37,6 +42,9 @@ export class TUIController {
       this._db,
       this._fuse,
     );
+
+    this._colorScheme =
+      _config.customColorSchemes[this._config.general.colorScheme]!;
   }
   private async createRenderer(): Promise<CliRenderer> {
     this._renderer = await createCliRenderer({
@@ -104,6 +112,58 @@ export class TUIController {
     );
   }
 
+  async deleteBookmark(bookmark: Bookmark): Promise<void> {
+    yesNoDialog(
+      this._tui!.renderer,
+      this._colorScheme,
+      `Are you sure you want to delete "${bookmark.title}"? (${bookmark.url})`,
+      () => {
+        TUIEventBus.instance.emit(TUIEvents.BookmarkDeleteRequest, bookmark);
+      },
+      () => {},
+    );
+  }
+
+  async editBookmark(bookmark: Bookmark): Promise<void> {
+    try {
+      this._renderer?.suspend();
+      const { title, url } = await openInEditor(
+        bookmark,
+        this._config.general.editor,
+      );
+      const editedBookmark = createBookmark({
+        ...bookmark,
+        title,
+        url,
+        modified: Date.now(),
+      });
+      await this._bookmarkRepository.setBookmark(editedBookmark);
+      this.updateSearchResults();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this._renderer?.resume();
+    }
+  }
+
+  async newBookmark(): Promise<void> {
+    try {
+      this._renderer?.suspend();
+      const { title, url } = await openInEditor(
+        undefined,
+        this._config.general.editor,
+      );
+      await this._bookmarkRepository.setBookmark(
+        createBookmark({ title, url }),
+      );
+      this.updateSearchResults();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      this._renderer?.resume();
+    }
+  }
+
   async init(): Promise<void> {
     await this._db.init();
     await this._bookmarkChangeRepository.init();
@@ -140,6 +200,26 @@ export class TUIController {
 
     Keymap.instance.on(KeymapEvents.quit, () => {
       this._renderer?.destroy();
+    });
+
+    Keymap.instance.on(KeymapEvents.deleteBookmark, () => {
+      const selectedBookmark = this._tui?.selectedBookmark;
+      if (selectedBookmark === undefined) {
+        return;
+      }
+      this.deleteBookmark(selectedBookmark);
+    });
+
+    Keymap.instance.on(KeymapEvents.editBookmark, () => {
+      const selectedBookmark = this._tui?.selectedBookmark;
+      if (selectedBookmark === undefined) {
+        return;
+      }
+      this.editBookmark(selectedBookmark);
+    });
+
+    Keymap.instance.on(KeymapEvents.newBookmark, () => {
+      this.newBookmark();
     });
 
     if (!this._config.general.disableHttpServer) {
