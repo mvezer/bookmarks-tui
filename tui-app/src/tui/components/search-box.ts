@@ -8,10 +8,7 @@ import type { ColorScheme } from '../../colorscheme';
 import { TUIEventBus, TUIEvents } from '../tui-events';
 export class SearchBox extends BoxRenderable {
   private _searchInput: InputRenderable;
-  constructor(
-    private _renderer: CliRenderer,
-    private _colorScheme: ColorScheme,
-  ) {
+  constructor(_renderer: CliRenderer, _colorScheme: ColorScheme) {
     super(_renderer, {
       id: 'search-box',
       width: '100%',
@@ -25,6 +22,7 @@ export class SearchBox extends BoxRenderable {
     this._searchInput = new InputRenderable(_renderer, {
       id: 'search-input',
       width: '100%',
+      textColor: _colorScheme.searchForeground,
       placeholder: 'bookmark name',
     });
 

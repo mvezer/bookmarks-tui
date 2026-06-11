@@ -1,27 +1,28 @@
 import { RGBA } from '@opentui/core';
-
-export interface ColorScheme {
-  background: RGBA;
-  foreground: RGBA;
-  border: RGBA;
-  searchBackground: RGBA;
-  searchForeground: RGBA;
-  searchBorder: RGBA;
-  statusBackground: RGBA;
-  statusForeground: RGBA;
-  statusBorder: RGBA;
-  selectedBackground: RGBA;
-  selectedForeground: RGBA;
-  deleteDialogBackground: RGBA;
-  deleteDialogForeground: RGBA;
-  deleteDialogBorder: RGBA;
-  dialogBackground: RGBA;
-  dialogForeground: RGBA;
-  dialogBorder: RGBA;
+export enum ColorSchemesKeys {
+  Background = 'background',
+  Foreground = 'foreground',
+  Border = 'border',
+  SearchBackground = 'searchBackground',
+  SearchForeground = 'searchForeground',
+  SearchBorder = 'searchBorder',
+  StatusBackground = 'statusBackground',
+  StatusForeground = 'statusForeground',
+  StatusBorder = 'statusBorder',
+  SelectedBackground = 'selectedBackground',
+  SelectedForeground = 'selectedForeground',
+  DeleteDialogBackground = 'deleteDialogBackground',
+  DeleteDialogForeground = 'deleteDialogForeground',
+  DeleteDialogBorder = 'deleteDialogBorder',
+  DialogBackground = 'dialogBackground',
+  DialogForeground = 'dialogForeground',
+  DialogBorder = 'dialogBorder',
+  ErrorToastBackground = 'errorToastBackground',
+  ErrorToastForeground = 'errorToastForeground',
+  ErrorToastBorder = 'errorToastBorder',
+  InfoToastBackground = 'infoToastBackground',
+  InfoToastForeground = 'infoToastForeground',
+  InfoToastBorder = 'infoToastBorder',
 }
-
-export interface ColorSchemeError {
-  line: number;
-  column: number;
-  message: string;
-}
+export type ColorSchemesDefinition = Record<ColorSchemesKeys, string>;
+export type ColorScheme = Record<ColorSchemesKeys, RGBA>;

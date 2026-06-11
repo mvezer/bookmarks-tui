@@ -16,7 +16,7 @@ import { TUI } from './tui';
 import { Keymap, KeymapEvents } from './tui/keymap';
 import { createCliRenderer, ConsolePosition, CliRenderer } from '@opentui/core';
 import { type IHttpServerHandlers, startHttpServer } from './utils/http-server';
-import type { Config } from './config';
+import type { Config } from './config/types';
 import { openInEditor } from './utils/editor';
 import { deleteDialog } from './tui/components/delete-dialog';
 import { type ColorScheme } from './colorscheme';
@@ -46,8 +46,7 @@ export class TUIController {
       this._fuse,
     );
 
-    this._colorScheme =
-      _config.customColorSchemes[this._config.general.colorScheme]!;
+    this._colorScheme = _config.colorSchemes[this._config.general.colorScheme]!;
   }
   private async createRenderer(): Promise<CliRenderer> {
     this._renderer = await createCliRenderer({
@@ -185,10 +184,7 @@ export class TUIController {
     const renderer = await this.createRenderer();
     Keymap.init(renderer, this._config.keymap);
 
-    this._tui = new TUI(
-      renderer,
-      this._config.customColorSchemes[this._config.general.colorScheme]!,
-    );
+    this._tui = new TUI(renderer, this._colorScheme);
     this.updateSearchResults();
 
     TUIEventBus.instance.on(

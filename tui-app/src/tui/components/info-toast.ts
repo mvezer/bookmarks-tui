@@ -11,9 +11,9 @@ export const infoToast = (
   const toast = new Toast(renderer, colorScheme, {
     text,
     timeout,
-    backgroundColor: colorScheme.dialogBackground,
-    foregroundColor: colorScheme.dialogForeground,
-    borderColor: colorScheme.dialogBorder,
+    backgroundColor: colorScheme.infoToastBackground,
+    foregroundColor: colorScheme.infoToastForeground,
+    borderColor: colorScheme.infoToastBorder,
   });
   toast.show();
 };

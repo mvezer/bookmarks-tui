@@ -1,6 +1,7 @@
 import { type KeymapDefinition, KeymapEvents } from '../../tui/keymap';
+import type { Config } from '../types';
 
-const DEFAULT_KEYMAP_DEFINITIONS: KeymapDefinition[] = [
+export const DEFAULT_KEYMAP_DEFINITIONS: KeymapDefinition[] = [
   { key: 'up', event: KeymapEvents.previousBookmark },
   { key: 'down', event: KeymapEvents.nextBookmark },
   { key: 'ctrl+q', event: KeymapEvents.quit },
@@ -78,10 +79,14 @@ const definitionExists = (
   return false;
 };
 
-export const parseKeymapDefinitions = (
-  keymapArr: { key: string; action: string }[],
-): { keymap: KeymapDefinition[]; errors: string[] } => {
+export const parseKeymapConfig = (
+  configObj: Record<string, unknown> | undefined,
+): Config['keymap'] | undefined => {
+  if (!configObj?.keymap) {
+    return undefined;
+  }
   const errors: string[] = [];
+  const keymapArr = configObj.keymap as { key: string; action: string }[];
   const invalidActions = keymapArr.filter(
     ({ action }) => !isValidKeymapAction(action),
   );
@@ -98,7 +103,7 @@ export const parseKeymapDefinitions = (
   }
 
   if (errors.length > 0) {
-    return { keymap: [], errors };
+    throw new Error(errors.join('\n'));
   }
 
   let keymapDefintions = keymapArr.map(({ key, action }) => ({
@@ -114,8 +119,5 @@ export const parseKeymapDefinitions = (
     ),
   ];
 
-  return {
-    keymap: keymapDefintions,
-    errors: [],
-  };
+  return keymapDefintions;
 };

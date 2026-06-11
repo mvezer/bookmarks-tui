@@ -40,6 +40,7 @@ export class Toast extends BoxRenderable {
         width: '100%',
         alignSelf: 'center',
         height: 'auto',
+        fg: options.foregroundColor || colorScheme.dialogForeground,
       }),
     );
     setTimeout(() => {

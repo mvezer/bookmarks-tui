@@ -12,5 +12,11 @@ export interface GeneralConfig {
 export interface Config {
   general: GeneralConfig;
   keymap: KeymapDefinition[];
-  customColorSchemes: Record<string, ColorScheme>;
+  colorSchemes: Record<string, ColorScheme>;
+}
+
+export interface UserConfig {
+  general?: Partial<GeneralConfig>;
+  keymap?: KeymapDefinition[];
+  colorSchemes?: Record<string, ColorScheme>;
 }

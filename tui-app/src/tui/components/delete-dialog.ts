@@ -25,7 +25,8 @@ class DeleteDialog extends BaseDialog {
         content: text,
         width: '100%',
         alignSelf: 'center',
-        height: 1,
+        height: 'auto',
+        fg: colorScheme.deleteDialogForeground,
       }),
     );
     const acceptKey = Keymap.instance.getKeymapDefintionsByEvent(
@@ -44,6 +45,7 @@ class DeleteDialog extends BaseDialog {
         alignSelf: 'center',
         marginTop: 1,
         height: 1,
+        fg: colorScheme.deleteDialogForeground,
       }),
     );
   }

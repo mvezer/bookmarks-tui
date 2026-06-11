@@ -14,9 +14,9 @@ export const errorToast = (
         ? error
         : (error as Error).message || 'Unknown error',
     timeout,
-    backgroundColor: colorScheme.deleteDialogBackground,
-    foregroundColor: colorScheme.deleteDialogForeground,
-    borderColor: colorScheme.deleteDialogBorder,
+    backgroundColor: colorScheme.errorToastBackground,
+    foregroundColor: colorScheme.errorToastForeground,
+    borderColor: colorScheme.errorToastBorder,
   });
   toast.show();
 };
