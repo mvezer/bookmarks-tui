@@ -47,6 +47,6 @@ const updateStatus = (stats: Stats, hostStatus: HostStatus) => {
 document.addEventListener('DOMContentLoaded', async () => {
   const storage = new Storage();
   await storage.init();
-  await storage.loadStats();
+  await storage.getStats();
   updateStatus(storage.stats, await getHostStatus());
 });

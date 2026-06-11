@@ -8,12 +8,15 @@ import {
   BookmarkChangeKind,
   ReverseLookupFieldMap,
   isFromTuiApp,
+  BookmarkCreateData,
 } from '@bookmarks-tui/common';
 import { BookmarkTrackingPayload, Storage } from './storage';
-
-export type BookmarkTreeNode = chrome.bookmarks.BookmarkTreeNode & {
-  trash?: boolean;
-};
+import {
+  traverseBookmarkTree,
+  BookmarkTreeNode,
+  traverseFilters,
+} from './bookmark-tree';
+import { BOOKMARKS_TUI_FOLDER_NAME } from './constants';
 
 let tracking = new ReverseLookupFieldMap<
   string,
@@ -53,8 +56,7 @@ const createBookmarkFromTreeNode = (node: BookmarkTreeNode): Bookmark => {
 };
 
 // gets all the bookmarks and flattens the tree
-async function getAllBookmarks(): Promise<Bookmark[]> {
-  const tree: BookmarkTreeNode[] = await chrome.bookmarks.getTree();
+const parseBookmarkTree = (tree: BookmarkTreeNode[]): Bookmark[] => {
   const stack: BookmarkTreeNode[] = [];
   const bookmarks: Bookmark[] = [];
   for (const node of tree) {
@@ -83,7 +85,7 @@ async function getAllBookmarks(): Promise<Bookmark[]> {
     }
   }
   return bookmarks;
-}
+};
 
 export const getHostStatus = async (): Promise<HostStatus> => {
   try {
@@ -97,13 +99,54 @@ export const getHostStatus = async (): Promise<HostStatus> => {
   }
 };
 
+const initBookmarksTuiFolder = async (
+  tree: BookmarkTreeNode[],
+): Promise<void> => {
+  // try to get the Bookmarks TUI folder id from the settings
+  let bookmarksTuiFolderId = storage.settings.bookmarksTuiFolderId;
+
+  // if no Bookmarks TUI folder id is found, try to find it in the bookmarks tree
+  if (bookmarksTuiFolderId === undefined)
+    bookmarksTuiFolderId = traverseBookmarkTree(
+      tree,
+      traverseFilters.bookmarksTuiFolder,
+    ).pop()?.id;
+
+  // if no Bookmarks TUI folder found, let's create one
+  if (bookmarksTuiFolderId === undefined) {
+    // try to find the bookmarks bar folder
+    const bookmarksBarFolderId =
+      traverseBookmarkTree(tree, traverseFilters.bookmarksBarFolder).pop()
+        ?.id || '1';
+    try {
+      bookmarksTuiFolderId = (
+        await chrome.bookmarks.create({
+          title: BOOKMARKS_TUI_FOLDER_NAME,
+          parentId: bookmarksBarFolderId,
+        })
+      ).id;
+      console.log('Bookmarks TUI folder created');
+    } catch (e) {
+      console.error('Could not create bookmarks tui folder', e);
+    }
+  }
+  storage.settings.bookmarksTuiFolderId = bookmarksTuiFolderId || '';
+  await storage.saveSettings();
+};
+
 export const init = async (): Promise<void> => {
   lastHostStatus = HostStatus.Unknown;
   if (isInitialized) {
     return;
   }
   await storage.init();
-  const chromeBookmarks = await getAllBookmarks();
+  await Promise.all([storage.getStats(), storage.getSettings()]);
+  const bookmarkTree: BookmarkTreeNode[] = await chrome.bookmarks.getTree();
+  const chromeBookmarks = traverseBookmarkTree(bookmarkTree).map(
+    (treeNode: BookmarkTreeNode) =>
+      createBookmark(treeNode as BookmarkCreateData),
+  );
+  await initBookmarksTuiFolder(bookmarkTree);
   tracking = new ReverseLookupFieldMap<string, BookmarkTrackingPayload, 'hash'>(
     'hash',
     Object.entries(await storage.getAllBookmarkTracking()),
@@ -128,6 +171,10 @@ export const onBookmarkCreated = async (
   _: string,
   bookmarkTreeNode: BookmarkTreeNode,
 ) => {
+  // it's a folder, we don't care about it
+  if (bookmarkTreeNode.url === undefined) {
+    return;
+  }
   storage.stats.bookmarks++;
   await storage.saveStats();
   setTimeout(async () => {
@@ -170,6 +217,10 @@ export const onBookmarkChanged = async (
   bookmarkId: string,
   bookmarkChangedData: Omit<BookmarkTreeNode, 'id'>,
 ) => {
+  // it's a folder, we don't care about it
+  if (bookmarkChangedData.url === undefined) {
+    return;
+  }
   setTimeout(async () => {
     const bookmark = createBookmarkFromTreeNode({
       ...bookmarkChangedData,
@@ -285,6 +336,7 @@ const requestSync = async (): Promise<void> => {
           try {
             const newBookmark = createBookmarkFromTreeNode(
               await chrome.bookmarks.create({
+                parentId: storage.settings.bookmarksTuiFolderId || '1',
                 title: newOrModifiedBookmark.title,
                 url: newOrModifiedBookmark.url,
               }),
