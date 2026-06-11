@@ -36,6 +36,7 @@ const mainDefinitions = [
   { name: 'disableHttpServer', alias: 'd', type: Boolean },
   { name: 'configPath', alias: 'c', type: String },
   { name: 'editor', alias: 'e', type: String },
+  { name: 'browserCommand', alias: 'b', type: String },
 ];
 
 const exportDefinitions = [
@@ -75,6 +76,7 @@ export interface MainOptions {
   disableHttpServer?: boolean;
   configPath?: string;
   editor?: string;
+  browserCommand?: string;
 }
 
 const DEFAULT_IMPORT_FORMAT = Format.Html;
@@ -92,11 +94,12 @@ Commands:
   import  Import bookmarks from file
   export  Export bookmarks
 
- Options:
+Options:
   -h, --help                      Display this help message
   -c, --configPath <path>         Path to config file
       --colorScheme <colorScheme> Color scheme to use
   -t, --transparent               Use transparent background
+  -b, --browserCommand <command>  Command to open urls (default: default browser)
   -d, --disableHttpServer         Disable HTTP server (no sync)
   -e, --editor <editor>           Editor to use for editing and creating bookmarks
 

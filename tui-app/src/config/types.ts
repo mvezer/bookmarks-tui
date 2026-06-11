@@ -3,10 +3,10 @@ import { type KeymapDefinition } from '../tui/keymap';
 
 export interface GeneralConfig {
   transparentBackground: boolean;
-  urlOpenScript: string;
+  browserCommand?: string;
   disableHttpServer: boolean;
   colorScheme: string;
-  editor: string;
+  editor?: string;
 }
 
 export interface Config {

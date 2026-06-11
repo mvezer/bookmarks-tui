@@ -54,6 +54,7 @@ export class TUIController {
       onDestroy: () => process.exit(0),
       consoleOptions: {
         position: ConsolePosition.BOTTOM, // Position on screen
+        backgroundColor: '#000000AA',
         sizePercent: 30, // Size as percentage of terminal
         colorInfo: '#00FFFF', // Color for console.info
         colorWarn: '#FFFF00', // Color for console.warn
@@ -76,7 +77,7 @@ export class TUIController {
           try {
             if (kind === BookmarkChangeKind.Add) {
               if (change.oldId) {
-                // we have id chane!
+                // we have id change!
                 await this._bookmarkRepository.removeBookmark.bind(
                   this._bookmarkRepository,
                 )(change.oldId, true);
@@ -198,7 +199,7 @@ export class TUIController {
     TUIEventBus.instance.on(
       TUIEvents.BookmarkActionRequest,
       (bookmark: Bookmark) => {
-        openUrl(bookmark.url);
+        openUrl.bind(this)(bookmark.url, this._config.general.browserCommand);
       },
     );
 

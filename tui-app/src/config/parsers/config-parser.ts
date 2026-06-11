@@ -6,6 +6,7 @@ import type { ColorScheme } from '../../colorscheme';
 import { parseColorScheme, DEFAULT_COLORSCHEME } from './colorscheme-parser.ts';
 import { parseKeymapDefinitions } from './keymap-parser.ts';
 import type { MainOptions } from '../../cli-controller';
+import { getDefaultBrowserCommand } from '../../utils/browser.ts';
 
 const DEFAULT_FILE_NAME = 'bookmarks-tui';
 const DEFAULT_CONFIG_DIRECTORY = `${process.env.HOME}/.config/bookmarks-tui`;
@@ -24,7 +25,7 @@ const EXTENSIONS_MAP: Record<ALLOWED_FORMATS, string[]> = {
 const DEFAULT_CONFIG: Config = {
   general: {
     transparentBackground: false,
-    urlOpenScript: 'default',
+    browserCommand: getDefaultBrowserCommand(),
     disableHttpServer: false,
     colorScheme: 'default',
     editor: 'nano',
@@ -142,10 +143,17 @@ export const parseConfigFileOrDefault = (
     mainOptions?.disableHttpServer ||
     parsedConfig.general.disableHttpServer ||
     DEFAULT_CONFIG.general.disableHttpServer;
+
   parsedConfig.general.editor =
     mainOptions?.editor ||
     parsedConfig.general.editor ||
     DEFAULT_CONFIG.general.editor;
+
+  parsedConfig.general.browserCommand =
+    mainOptions?.browserCommand ||
+    parsedConfig.general.browserCommand ||
+    DEFAULT_CONFIG.general.browserCommand;
+
   const parsedColorSchemes = Object.keys(
     configObj.customColorSchemes || {},
   ).reduce(
