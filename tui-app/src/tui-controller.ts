@@ -22,6 +22,7 @@ import { deleteDialog } from './tui/components/delete-dialog';
 import { type ColorScheme } from './colorscheme';
 import { createBookmarkHash } from '@bookmarks-tui/common';
 import { infoToast } from './tui/components/info-toast';
+import { errorToast } from './tui/components/error-toast';
 
 export class TUIController {
   private _fuse: Fuse<Bookmark>;
@@ -150,7 +151,7 @@ export class TUIController {
         `Bookmark edited: ${title}`,
       );
     } catch (e) {
-      console.error(e);
+      errorToast(this._renderer!, this._colorScheme, e);
     } finally {
       this._renderer?.resume();
     }
@@ -169,7 +170,7 @@ export class TUIController {
       infoToast(this._renderer!, this._colorScheme, `Bookmark added: ${title}`);
       this.updateSearchResults();
     } catch (e) {
-      console.error(e);
+      errorToast(this._renderer!, this._colorScheme, e);
     } finally {
       this._renderer?.resume();
     }
