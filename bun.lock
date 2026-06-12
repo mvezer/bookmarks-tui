@@ -17,6 +17,9 @@
     "common": {
       "name": "@bookmarks-tui/common",
       "version": "1.0.0",
+      "dependencies": {
+        "uuid": "^14.0.0",
+      },
     },
     "connector": {
       "name": "bookmarks-tui-connector",

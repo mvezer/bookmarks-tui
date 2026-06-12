@@ -6,5 +6,8 @@
   "license": "MIT",
   "author": "Matyas Vezer <mat@vezer.me>",
   "type": "module",
-  "exports": "./index.ts"
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "uuid": "^14.0.0"
+  }
 }
