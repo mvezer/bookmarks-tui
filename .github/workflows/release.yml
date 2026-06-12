@@ -36,7 +36,7 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "version=$(bun -e "console.log(require('./tui-app/package.json').version)")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(jq -r '.version' tui-app/package.json)" >> "$GITHUB_OUTPUT"
 
       - name: Build binary
         run: >
@@ -65,7 +65,7 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "version=$(bun -e "console.log(require('./connector/manifest.json').version)")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(jq -r '.version' connector/manifest.json)" >> "$GITHUB_OUTPUT"
 
       - name: Build connector
         run: bun run build:connector
@@ -98,7 +98,7 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "version=$(bun -e "console.log(require('./tui-app/package.json').version)")" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(jq -r '.version' tui-app/package.json)" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
