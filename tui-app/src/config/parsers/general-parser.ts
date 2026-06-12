@@ -5,7 +5,7 @@ export const DEFAULT_GENERAL_CONFIG: Config['general'] = {
   transparentBackground: false,
   browserCommand: getDefaultBrowserCommand(),
   disableHttpServer: false,
-  colorScheme: 'default',
+  colorScheme: 'ayu_dark',
   editor: 'nano',
 };
 export const parseGeneralConfig = (
