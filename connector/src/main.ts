@@ -125,7 +125,6 @@ const initBookmarksTuiFolder = async (
           parentId: bookmarksBarFolderId,
         })
       ).id;
-      console.log('Bookmarks TUI folder created');
     } catch (e) {
       console.error('Could not create bookmarks tui folder', e);
     }
