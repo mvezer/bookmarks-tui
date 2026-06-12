@@ -83,7 +83,7 @@ export const parseKeymapConfig = (
   configObj: Record<string, unknown> | undefined,
 ): Config['keymap'] | undefined => {
   if (!configObj?.keymap) {
-    return undefined;
+    return DEFAULT_KEYMAP_DEFINITIONS;
   }
   const errors: string[] = [];
   const keymapArr = configObj.keymap as { key: string; action: string }[];
@@ -106,18 +106,17 @@ export const parseKeymapConfig = (
     throw new Error(errors.join('\n'));
   }
 
-  let keymapDefintions = keymapArr.map(({ key, action }) => ({
+  let userKeymapDefintions = keymapArr.map(({ key, action }) => ({
     key,
     event: action as KeymapEvents,
   }));
 
   // fill up the definitions with the default ones
-  keymapDefintions = [
-    ...keymapDefintions,
+  userKeymapDefintions.push(
     ...DEFAULT_KEYMAP_DEFINITIONS.filter(
-      (defininiton) => !definitionExists(keymapDefintions, defininiton),
+      (defininiton) => !definitionExists(userKeymapDefintions, defininiton),
     ),
-  ];
+  );
 
-  return keymapDefintions;
+  return userKeymapDefintions;
 };
