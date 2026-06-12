@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build TUI (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - target: linux-x64
+            runner: ubuntu-latest
+            bun-target: bun-linux-x64
+          - target: linux-arm64
+            runner: ubuntu-latest
+            bun-target: bun-linux-arm64
+          - target: darwin-x64
+            runner: macos-latest
+            bun-target: bun-darwin-x64
+          - target: darwin-arm64
+            runner: macos-latest
+            bun-target: bun-darwin-arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Read version
+        id: version
+        run: echo "version=$(bun -e "console.log(require('./tui-app/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Build binary
+        run: >
+          bun build --compile --minify
+          --target=${{ matrix.bun-target }}
+          ./tui-app/src/index.ts
+          --outfile bookmarks-tui-${{ matrix.target }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bookmarks-tui-${{ matrix.target }}-v${{ steps.version.outputs.version }}
+          path: bookmarks-tui-${{ matrix.target }}
+
+  build-connector:
+    name: Build Connector
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Read version
+        id: version
+        run: echo "version=$(bun -e "console.log(require('./connector/manifest.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Build connector
+        run: bun run build:connector
+
+      - name: Zip connector
+        run: |
+          cd connector
+          zip -r ../bookmarks-tui-connector-v${{ steps.version.outputs.version }}.zip \
+            manifest.json \
+            popup.html \
+            icon/ \
+            dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bookmarks-tui-connector-v${{ steps.version.outputs.version }}
+          path: bookmarks-tui-connector-v${{ steps.version.outputs.version }}.zip
+
+  release:
+    name: Create GitHub Release
+    needs: [build, build-connector]
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: echo "version=$(bun -e "console.log(require('./tui-app/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: dist/*

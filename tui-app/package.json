@@ -1,5 +1,6 @@
 {
   "name": "bookmarks-tui-app",
+  "version": "0.1.0",
   "module": "index.ts",
   "devDependencies": {
     "@types/bun": "latest",
