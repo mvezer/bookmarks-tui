@@ -13,11 +13,11 @@
   },
   "type": "module",
   "dependencies": {
-    "@opentui/core": "^0.2.15",
-    "@opentui/keymap": "^0.2.15",
+    "@bookmarks-tui/common": "*",
+    "@opentui/core": "^0.4.1",
+    "@opentui/keymap": "^0.4.1",
     "command-line-args": "^6.0.2",
     "fuse.js": "^7.3.0",
-    "node-html-parser": "^7.1.0",
-    "@bookmarks-tui/common": "*"
+    "node-html-parser": "^7.1.0"
   }
 }
