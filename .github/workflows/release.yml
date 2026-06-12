@@ -18,10 +18,9 @@ jobs:
           - target: linux-arm64
             runner: ubuntu-24.04-arm
             bun-target: bun-linux-arm64
-          # no more intel mac runners at GitHub :/
-          # - target: darwin-x64
-          #   runner: macos-13
-          #   bun-target: bun-darwin-x64
+          - target: darwin-x64
+            runner: macos-15-intel
+            bun-target: bun-darwin-x64
           - target: darwin-arm64
             runner: macos-latest
             bun-target: bun-darwin-arm64
