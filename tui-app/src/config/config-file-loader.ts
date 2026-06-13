@@ -26,10 +26,11 @@ const EXTENSIONS_MAP: Record<ALLOWED_CONFIG_FORMATS, string[]> = {
 const inferConfigFormatFromFilePath = (
   filePath: string,
 ): ALLOWED_CONFIG_FORMATS | undefined => {
-  const extension = path.extname(filePath);
+  const extension = path.extname(filePath)?.replace('.', '');
   if (!extension) {
     return;
   }
+
   for (const [format, extensions] of Object.entries(EXTENSIONS_MAP)) {
     if (extensions.includes(extension)) {
       return format as ALLOWED_CONFIG_FORMATS;
