@@ -141,9 +141,11 @@ export const init = async (): Promise<void> => {
   await storage.init();
   await Promise.all([storage.getStats(), storage.getSettings()]);
   const bookmarkTree: BookmarkTreeNode[] = await chrome.bookmarks.getTree();
-  const chromeBookmarks = traverseBookmarkTree(bookmarkTree).map(
-    (treeNode: BookmarkTreeNode) =>
-      createBookmark(treeNode as BookmarkCreateData),
+  const chromeBookmarks = traverseBookmarkTree(
+    bookmarkTree,
+    traverseFilters.bookmarks,
+  ).map((treeNode: BookmarkTreeNode) =>
+    createBookmark(treeNode as BookmarkCreateData),
   );
   await initBookmarksTuiFolder(bookmarkTree);
   tracking = new ReverseLookupFieldMap<string, BookmarkTrackingPayload, 'hash'>(
