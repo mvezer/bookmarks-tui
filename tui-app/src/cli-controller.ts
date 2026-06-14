@@ -33,10 +33,12 @@ const mainDefinitions = [
   { name: 'help', alias: 'h', type: Boolean },
   { name: 'colorScheme', type: String },
   { name: 'transparent', alias: 't', type: Boolean },
-  { name: 'disableHttpServer', alias: 'd', type: Boolean },
+  { name: 'disableHttpServer', alias: 's', type: Boolean },
   { name: 'configPath', alias: 'c', type: String },
   { name: 'editor', alias: 'e', type: String },
   { name: 'browserCommand', alias: 'b', type: String },
+  { name: 'version', alias: 'v', type: Boolean },
+  { name: 'dbPath', alias: 'd', type: String },
 ];
 
 const exportDefinitions = [
@@ -77,6 +79,8 @@ export interface MainOptions {
   configPath?: string;
   editor?: string;
   browserCommand?: string;
+  version: boolean;
+  dbPath?: string;
 }
 
 const DEFAULT_IMPORT_FORMAT = Format.Html;
@@ -96,12 +100,14 @@ Commands:
 
 Options:
   -h, --help                      Display this help message
+  -v, --version                   Display version information
   -c, --configPath <path>         Path to config file
+  -e, --editor <editor>           Editor to use for editing and creating bookmarks
       --colorScheme <colorScheme> Color scheme to use
   -t, --transparent               Use transparent background
   -b, --browserCommand <command>  Command to open urls (default: default browser)
-  -d, --disableHttpServer         Disable HTTP server (no sync)
-  -e, --editor <editor>           Editor to use for editing and creating bookmarks
+  -s, --disableHttpServer         Disable HTTP server (no sync)
+  -d, --dbPath <path>             Path to database file
 
 Import options:
   -f, --filePath <path> Path to file to import
