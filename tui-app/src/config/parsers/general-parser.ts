@@ -1,5 +1,9 @@
 import type { Config } from '../types';
 import { getDefaultBrowserCommand } from '../../utils/browser';
+import createEnvPath from 'env-paths';
+import { join as joinPath } from 'path';
+
+const envPath = createEnvPath('bookmarks-tui');
 
 export const DEFAULT_GENERAL_CONFIG: Config['general'] = {
   transparentBackground: false,
@@ -7,6 +11,7 @@ export const DEFAULT_GENERAL_CONFIG: Config['general'] = {
   disableHttpServer: false,
   colorScheme: 'ayu_dark',
   editor: 'nano',
+  dbPath: joinPath(envPath.data, 'bookmarks-tui.db'),
 };
 export const parseGeneralConfig = (
   configObj: Record<string, unknown> | undefined,
