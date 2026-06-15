@@ -7,6 +7,8 @@ import {
   type IChangeStorage,
 } from '@bookmarks-tui/common';
 import { Database } from 'bun:sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 export interface IBookmarkStorage {
   init(): Promise<void>;
@@ -46,13 +48,12 @@ const CHANGES_REMOVE_TABLE_DDL = `CREATE TABLE IF NOT EXISTS changes_remove (
 );
 `;
 
-const DEFAULT_DB_PATH = process.env.HOME + '/.config/bookmarks/bookmarks.db';
-
 export class Db implements IChangeStorage, IBookmarkStorage {
   private _isInitialized = false;
   private _db: Database;
-  constructor(private _dbPath: string = DEFAULT_DB_PATH) {
-    this._db = new Database(this._dbPath, { create: true });
+  constructor(dbPath: string) {
+    mkdirSync(dirname(dbPath), { recursive: true });
+    this._db = new Database(dbPath, { create: true });
   }
 
   async init(): Promise<void> {

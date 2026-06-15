@@ -1,7 +1,7 @@
 # Bookmarks TUI
 
 <p align="center">
-  <img src="https://github.com/mvezer/bookmarks-tui/blob/main/connector/icon/bookmarks-tui-connector-512px.png?raw=true" alt="Bookmarks TUI" width=30%/>
+  <img src="https://github.com/mvezer/bookmarks-tui/blob/main/connector/icon/bookmarks-tui-connector-512px.png?raw=true" alt="Bookmarks TUI" width=30% style="-webkit-filter: drop-shadow(5px 5px 5px #000); filter: drop-shadow(5px 5px 5px #000);"/>
 </p>
 
 > It's a **work in progress** project — not yet available for public use, but you're welcome to play around with it :)
@@ -77,6 +77,7 @@ Launches the interactive terminal UI.
 | `-b, --browserCommand <cmd>` | Command used to open URLs (e.g. `firefox`) |
 | `-d, --disableHttpServer` | Disable the Chrome sync HTTP server |
 | `-e, --editor <editor>` | Editor command for creating/editing bookmarks |
+| `-v, --version` | Display version information |
 
 ### Import / export
 
@@ -192,8 +193,7 @@ infoToastBorder        = "#94e2d5"
 
 | Name | Style |
 |---|---|
-| `default` | Dark (alias for `ayu_dark`) |
-| `ayu_dark` | Dark, near-black background |
+| `ayu_dark` | Dark, near-black background (default color scheme) |
 | `ayu_light` | Light, clean white background |
 | `catppuccin_frappe` | Dark, blue-purple base |
 | `catppuccin_mocha` | Dark, deep purple base |

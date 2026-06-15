@@ -1,12 +1,13 @@
-import path from 'path';
 import { YAML, TOML } from 'bun';
 import { existsSync, readFileSync } from 'fs';
+import envPath from 'env-paths';
+import { join as joinPath, extname } from 'path';
 
 const DEFAULT_FILE_NAME = 'bookmarks-tui';
 
 // locactions will be checked in this order
 const CONFIG_FILE_LOCATIONS = [
-  `${process.env.HOME || '~'}/.config/bookmarks-tui`,
+  envPath('bookmarks-tui').config,
   `${process.env.HOME || '~'}`,
 ];
 
@@ -26,10 +27,11 @@ const EXTENSIONS_MAP: Record<ALLOWED_CONFIG_FORMATS, string[]> = {
 const inferConfigFormatFromFilePath = (
   filePath: string,
 ): ALLOWED_CONFIG_FORMATS | undefined => {
-  const extension = path.extname(filePath);
+  const extension = extname(filePath)?.replace('.', '');
   if (!extension) {
     return;
   }
+
   for (const [format, extensions] of Object.entries(EXTENSIONS_MAP)) {
     if (extensions.includes(extension)) {
       return format as ALLOWED_CONFIG_FORMATS;
@@ -44,7 +46,7 @@ const detectFilePathAndFormat = (): {
   for (const configFileLocation of CONFIG_FILE_LOCATIONS) {
     for (const [format, extensions] of Object.entries(EXTENSIONS_MAP)) {
       for (const extension of extensions) {
-        const configPath = path.join(
+        const configPath = joinPath(
           configFileLocation,
           `${DEFAULT_FILE_NAME}.${extension}`,
         );

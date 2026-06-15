@@ -48,6 +48,10 @@ export const getConfig = (mainOptions: MainOptions | undefined): Config => {
       userGeneralConfig.editor ||
       process.env.EDITOR ||
       DEFAULT_GENERAL_CONFIG.editor,
+    dbPath:
+      mainOptions?.dbPath ||
+      userGeneralConfig.dbPath ||
+      DEFAULT_GENERAL_CONFIG.dbPath,
   };
   const keymap: Config['keymap'] = parseKeymapConfig(configObj) || [];
   const colorSchemes: Config['colorSchemes'] = parseColorSchemeConfig(

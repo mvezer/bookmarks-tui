@@ -34,7 +34,7 @@ export class TUIController {
   private _colorScheme: ColorScheme;
 
   constructor(private _config: Config) {
-    this._db = new Db();
+    this._db = new Db(_config.general.dbPath);
     this._fuse = new Fuse<Bookmark>([], {
       keys: ['title'],
       includeScore: false,

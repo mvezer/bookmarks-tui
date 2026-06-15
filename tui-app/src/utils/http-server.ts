@@ -40,15 +40,13 @@ export const startHttpServer = (handlers: IHttpServerHandlers) => {
     if (req.url === '/sync/chrome' && req.method === 'POST') {
       const incomingChanges =
         await readJSONbody<[string, BookmarkChange][]>(req);
-      if (
-        !Array.isArray(incomingChanges) ||
-        incomingChanges.some((change) => {
-          if (!Array.isArray(change)) return true;
-          const [id, c] = change;
-          return typeof id !== 'string' || !isBoookmarkChange(c);
-        })
-      ) {
-        console.error('invalid bookmarks sync data', incomingChanges);
+      const invalidSyncData = incomingChanges.filter((change) => {
+        if (!Array.isArray(change)) return true;
+        const [id, c] = change;
+        return typeof id !== 'string' || !isBoookmarkChange(c);
+      });
+      if (invalidSyncData.length > 0) {
+        console.error('invalid bookmarks sync data:', invalidSyncData);
         respond(res, 400, 'Invalid bookmarks change data');
         return;
       }
