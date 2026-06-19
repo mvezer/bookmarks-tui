@@ -1,4 +1,4 @@
-import type { Bookmark } from '@bookmarks-tui/common';
+import type { Bookmark } from '@bookmarks-tui/common/bookmarks';
 import { BoxRenderable, CliRenderer, TextRenderable } from '@opentui/core';
 import type { ColorScheme } from '../../colorscheme';
 

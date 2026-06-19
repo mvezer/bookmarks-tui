@@ -12,7 +12,7 @@ import {
 import { TUIController } from './tui-controller';
 import { getConfig } from './config';
 import type { Config } from './config/types';
-import { APP_VERSION } from './utils/app-version';
+import { VERSION, BUILD_DATE } from './version';
 
 let importOptions: ImportOptions | undefined;
 let exportOptions: ExportOptions | undefined;
@@ -26,7 +26,7 @@ try {
     if (mainOptions.help) {
       result = { stdout: getUsage(), exitCode: 0 };
     } else if (mainOptions.version) {
-      result = { stdout: APP_VERSION, exitCode: 0 };
+      result = { stdout: `${VERSION} (${BUILD_DATE})`, exitCode: 0 };
     } else {
       switch (mainOptions.command) {
         case Commands.Import:

@@ -1,54 +1,29 @@
-import {
-  BookmarkChangeKind,
-  type Bookmark,
-  type BookmarkChange,
-  type BookmarkAddChange,
-  type BookmarkRemoveChange,
-  type IChangeStorage,
-} from '@bookmarks-tui/common';
+import { type Bookmark } from '@bookmarks-tui/common/bookmarks';
+import type { SyncData } from '@bookmarks-tui/common/sync';
 import { Database } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-export interface IBookmarkStorage {
-  init(): Promise<void>;
-  getAllBookmarks(): Promise<Bookmark[]>;
-  getBookmark(bookmarkId: string): Promise<Bookmark | undefined>;
-  setBookmark(bookmark: Bookmark): Promise<void>;
-  removeBookmark(bookmarkId: string): Promise<void>;
-}
-
-const BOOKMARKST_ABLE_DDL = `
+const BOOKMARKS_DDL = `
 CREATE TABLE IF NOT EXISTS bookmarks (
-	id TEXT(128) NOT NULL,
-  modified INTEGER NOT NULL,
-	title TEXT(512) NOT NULL,
+	uid TEXT(36) NOT NULL,
+	title TEXT(1024) NOT NULL,
+	url TEXT(1024) NOT NULL,
 	hash TEXT(32) NOT NULL,
-	url TEXT(512) NOT NULL,
-	CONSTRAINT bookmarks_pk PRIMARY KEY (id)
-);
-`;
+	modified INTEGER NOT NULL,
+	deleted INTEGER NOT NULL,
+	PRIMARY KEY (uid)
+);`;
 
-const CHANGES_ADD_TABLE_DDL = `CREATE TABLE IF NOT EXISTS changes_add (
-	uuid TEXT(36) NOT NULL,
-  timestamp INTEGER NOT NULL,
-	id TEXT(128) NOT NULL,
-  modified INTEGER NOT NULL,
-	title TEXT(512) NOT NULL,
-	hash TEXT(32) NOT NULL,
-	url TEXT(512) NOT NULL,
-	CONSTRAINT changes_add_pk PRIMARY KEY (uuid)
-);
-`;
-const CHANGES_REMOVE_TABLE_DDL = `CREATE TABLE IF NOT EXISTS changes_remove (
-	uuid TEXT(36) NOT NULL,
-  timestamp INTEGER NOT NULL,
-	id TEXT(128) NOT NULL,
-	CONSTRAINT changes_remove_pk PRIMARY KEY (uuid)
-);
-`;
+const SYNC_DDL = `CREATE TABLE IF NOT EXISTS sync (
+	bookmark_uid TEXT,
+  client_id TEXT(36) NOT NULL,
+  "timestamp" INTEGER NOT NULL,
+	FOREIGN KEY (bookmark_uid) REFERENCES bookmarks(uid),
+  PRIMARY KEY (bookmark_uid, client_id)
+);`;
 
-export class Db implements IChangeStorage, IBookmarkStorage {
+export class Db {
   private _isInitialized = false;
   private _db: Database;
   constructor(dbPath: string) {
@@ -56,174 +31,98 @@ export class Db implements IChangeStorage, IBookmarkStorage {
     this._db = new Database(dbPath, { create: true });
   }
 
-  async init(): Promise<void> {
+  init(): void {
     if (this._isInitialized) {
       return;
     }
-    this._db.query(BOOKMARKST_ABLE_DDL).run();
-    this._db.query(CHANGES_ADD_TABLE_DDL).run();
-    this._db.query(CHANGES_REMOVE_TABLE_DDL).run();
+    this._db.query(BOOKMARKS_DDL).run();
+    this._db.query(SYNC_DDL).run();
     this._isInitialized = true;
   }
 
-  async getAllBookmarkChanges(): Promise<{ [key: string]: BookmarkChange }> {
-    await this.init();
-
-    try {
-      const addChanges = this._db
-        .query('SELECT * FROM changes_add')
-        .all()
-        .reduce((acc: { [key: string]: BookmarkChange }, c: any) => {
-          const { uuid, timestamp, ...bookmark } = c;
-          acc[uuid] = {
-            timestamp,
-            kind: BookmarkChangeKind.Add,
-            ...bookmark,
-          } as BookmarkAddChange;
-          return acc;
-        }, {});
-      const removeChanges = this._db
-        .query('SELECT * FROM changes_remove')
-        .all()
-        .reduce((acc: { [key: string]: BookmarkChange }, c: any) => {
-          const { uuid, timestamp, id } = c;
-          acc[uuid] = {
-            timestamp,
-            kind: BookmarkChangeKind.Remove,
-            id,
-          } as BookmarkRemoveChange;
-          return acc;
-        }, {});
-      return Promise.resolve({ ...addChanges, ...removeChanges });
-    } catch (e) {
-      return Promise.reject(e);
-    }
+  getAllBookmarks(): Bookmark[] {
+    return this._db
+      .query('SELECT * FROM bookmarks WHERE deleted = 0')
+      .all()
+      .map((b) => b as Bookmark);
   }
 
-  async removeBookmarkChange(changeId: string): Promise<boolean> {
-    await this.init();
-
-    try {
-      // we don't know if the change is stored in the remove or the add table, so we try both (first the remove table)
-      // TODO: create a lookup table for that
-      let changesAddResult;
-
-      const changesRemoveResult = this._db
-        .query(`DELETE FROM changes_remove WHERE uuid = ? RETURNING *`)
-        .get(changeId);
-      if (!changesRemoveResult) {
-        changesAddResult = this._db
-          .query(`DELETE FROM changes_add WHERE uuid = ? RETURNING *`)
-          .get(changeId);
-      }
-      return Promise.resolve(!!changesRemoveResult || !!changesAddResult);
-    } catch (e) {
-      return Promise.reject(e);
+  getBookmark(uid: string): Bookmark | undefined {
+    const result = this._db
+      .query(`SELECT * FROM bookmarks WHERE uid = ?`)
+      .get(uid);
+    if (!result) {
+      return undefined;
     }
+    return result as Bookmark;
   }
 
-  async addBookmarkChange(changes: {
-    [key: string]: BookmarkChange;
-  }): Promise<void> {
-    await this.init();
-    try {
-      for (const [uuid, change] of Object.entries(changes)) {
-        if (change.kind === BookmarkChangeKind.Add) {
-          this._db
-            .query(
-              `INSERT INTO changes_add (uuid, timestamp, id, modified, title, hash, url) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (uuid) DO UPDATE SET timestamp = ?, id = ?, modified = ?, title = ?, hash = ?, url = ?`,
-            )
-            .run(
-              uuid,
-              change.timestamp,
-              change.id,
-              change.modified,
-              change.title,
-              change.hash,
-              change.url,
-              change.timestamp,
-              change.id,
-              change.modified,
-              change.title,
-              change.hash,
-              change.url,
-            );
-        } else if (change.kind === BookmarkChangeKind.Remove) {
-          this._db
-            .query(
-              `INSERT INTO changes_remove (uuid, timestamp, id) VALUES (?, ?, ?) ON CONFLICT (uuid) DO UPDATE SET timestamp = ?, id = ?`,
-            )
-            .run(
-              uuid,
-              change.timestamp,
-              change.id,
-              change.timestamp,
-              change.id,
-            );
+  setBookmark(bookmark: Bookmark): void {
+    this._db
+      .query(
+        `INSERT INTO bookmarks (uid, title, url, hash, modified, deleted) VALUES (?, ?, ?, ?, ?, 0) ON CONFLICT (uid) DO UPDATE SET title = ?, url = ?, hash = ?, modified = ?`,
+      )
+      .run(
+        // insest values
+        bookmark.uid,
+        bookmark.title,
+        bookmark.url,
+        bookmark.hash,
+        bookmark.modified,
+        // update values
+        bookmark.title,
+        bookmark.url,
+        bookmark.hash,
+        bookmark.modified,
+      );
+  }
+
+  removeBookmark(uid: string): void {
+    this.init();
+    this._db
+      .query(`UPDATE bookmarks SET deleted = 1, modified = ? WHERE uid = ?`)
+      .run(Date.now(), uid);
+  }
+
+  getSyncData(clientId: string): SyncData {
+    this.init();
+    // this is the tricky part. We need to get all the bookmarks that do not have corresponding sync entry where the client_id and the bookmmark uid match or the latest if there are mathcing sync etries, the latest matching sync entry timestamp must be lower then the bookmark modified timestamp
+    const result = this._db
+      .query(
+        `SELECT bookmarks.*
+            FROM bookmarks LEFT JOIN sync
+          ON bookmarks.uid = sync.bookmark_uid
+            WHERE (sync.bookmark_uid IS NULL OR sync.timestamp < bookmarks.modified)
+        `,
+      )
+
+      .all(clientId) as (Bookmark & { deleted: number })[];
+    return result.reduce((syncData, bookmark) => {
+      if (bookmark.deleted == 1) {
+        if (syncData.removed) {
+          syncData.removed.push(bookmark.uid);
+        } else {
+          syncData.removed = [bookmark.uid];
         }
-        return Promise.resolve();
+      } else {
+        if (syncData.changed) {
+          syncData.changed.push(bookmark);
+        } else {
+          syncData.changed = [bookmark];
+        }
       }
-    } catch (e) {
-      return Promise.reject(e);
-    }
+      return syncData;
+    }, {} as SyncData);
   }
 
-  async getAllBookmarks(): Promise<Bookmark[]> {
-    await this.init();
-    try {
-      return this._db
-        .query('SELECT * FROM bookmarks')
-        .all()
-        .map((b) => b as Bookmark);
-    } catch (e) {
-      return Promise.reject(e);
-    }
-  }
-
-  async getBookmark(bookmarkId: string): Promise<Bookmark | undefined> {
-    await this.init();
-    try {
-      const result = this._db
-        .query(`SELECT * FROM bookmarks WHERE id = ?`)
-        .get(bookmarkId);
-      if (!result) {
-        return;
-      }
-      return result as Bookmark;
-    } catch (e) {
-      return Promise.reject(e);
-    }
-  }
-  async setBookmark(bookmark: Bookmark): Promise<void> {
-    await this.init();
-    try {
-      this._db
-        .query(
-          `INSERT INTO bookmarks (id, modified, title, hash, url) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO UPDATE SET modified = ?, title = ?, hash = ?, url = ?`,
-        )
-        .run(
-          bookmark.id,
-          bookmark.modified,
-          bookmark.title,
-          bookmark.hash,
-          bookmark.url,
-          bookmark.modified,
-          bookmark.title,
-          bookmark.hash,
-          bookmark.url,
-        );
-    } catch (e) {
-      return Promise.reject(e);
-    }
-  }
-
-  async removeBookmark(bookmarkId: string): Promise<void> {
-    await this.init();
-    try {
-      this._db.query(`DELETE FROM bookmarks WHERE id = ?`).run(bookmarkId);
-    } catch (e) {
-      return Promise.reject(e);
-    }
+  confirmSync(uid: string, clientId: string): void {
+    this.init();
+    const now = Date.now();
+    this._db
+      .query(
+        `INSERT INTO sync (bookmark_uid, client_id, timestamp) VALUES (?, ?, ?) ON CONFLICT (bookmark_uid, client_id) DO UPDATE SET timestamp = ?`,
+      )
+      .run(uid, clientId, now, now);
   }
 
   get isInitialized(): boolean {

@@ -1,82 +1,49 @@
-import { createServer, IncomingMessage } from 'node:http';
-import { isBoookmarkChange, type BookmarkChange } from '@bookmarks-tui/common';
-
-const PORT = 31531;
+import { type SyncData, isSyncData } from '@bookmarks-tui/common/sync';
+import { PORT } from '@bookmarks-tui/common/constants';
+import { URL } from 'node:url';
 
 export interface IHttpServerHandlers {
   onStatus: () => string;
-  onSyncReceived: (changes: [string, BookmarkChange][]) => Promise<string[]>;
-  onSyncRequested: () => [string, BookmarkChange][];
-  onSyncConfirmed: (syncedIds: string[]) => Promise<void>;
+  onSync: (syncData: SyncData) => SyncData;
 }
 
-const readJSONbody = <T>(req: IncomingMessage): Promise<T> => {
-  return new Promise((resolve, reject) => {
-    const body: string[] = [];
-    req.on('data', (chunk) => {
-      body.push(chunk);
-    });
-    req.on('end', async () => {
-      resolve(JSON.parse(body.join('')) as T);
-    });
-    req.on('error', reject);
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
   });
-};
+}
 
-const respond = (res: any, statusCode: number, body: string | unknown = '') => {
-  const isString = typeof body === 'string';
-  if (!isString) {
-    res.setHeader('Content-Type', 'application/json');
-  }
-  res.writeHead(statusCode);
-  res.end(isString ? body : JSON.stringify(body));
-};
+export const startHttpServer = (handlers: IHttpServerHandlers): void => {
+  const server = Bun.serve({
+    port: PORT,
+    async fetch(req) {
+      const url = new URL(req.url);
 
-export const startHttpServer = (handlers: IHttpServerHandlers) => {
-  const server = createServer(async (req: IncomingMessage, res) => {
-    if (req.url === '/status' && req.method === 'GET') {
-      respond(res, 200, handlers.onStatus());
-    }
-    if (req.url === '/sync/chrome' && req.method === 'POST') {
-      const incomingChanges =
-        await readJSONbody<[string, BookmarkChange][]>(req);
-      const invalidSyncData = incomingChanges.filter((change) => {
-        if (!Array.isArray(change)) return true;
-        const [id, c] = change;
-        return typeof id !== 'string' || !isBoookmarkChange(c);
-      });
-      if (invalidSyncData.length > 0) {
-        console.error('invalid bookmarks sync data:', invalidSyncData);
-        respond(res, 400, 'Invalid bookmarks change data');
-        return;
+      if (url.pathname === '/status' && req.method === 'GET') {
+        return jsonResponse(handlers.onStatus());
       }
-      try {
-        const processedChangeIds =
-          await handlers.onSyncReceived(incomingChanges);
-        respond(res, 200, { processedChangeIds });
-      } catch (e: unknown) {
-        console.error(e);
-        respond(res, 500, { error: (e as Error).message || 'Unknown error' });
+
+      if (url.pathname === '/sync' && req.method === 'POST') {
+        try {
+          const syncData = await req.json();
+          if (!isSyncData(syncData)) {
+            throw new Error('Invalid sync data');
+          }
+          if (!syncData.clientId) {
+            throw new Error('Missing clientId');
+          }
+          return jsonResponse(handlers.onSync(syncData));
+        } catch (e) {
+          console.error(e);
+          return jsonResponse(
+            { error: (e as Error).message || 'Unknown error' },
+            400,
+          );
+        }
       }
-    }
-    if (req.url === '/sync/chrome' && req.method === 'GET') {
-      respond(res, 200, handlers.onSyncRequested());
-    }
-    if (req.url === '/sync/confirm' && req.method === 'POST') {
-      const syncedIds = await readJSONbody<string[]>(req);
-      if (!Array.isArray(syncedIds)) {
-        console.error('invalid synced ids', syncedIds);
-        respond(res, 400, 'Invalid synced ids');
-        return;
-      }
-      try {
-        await handlers.onSyncConfirmed(syncedIds);
-        respond(res, 200);
-      } catch (e: unknown) {
-        console.error(e);
-        respond(res, 500, { error: (e as Error).message || 'Unknown error' });
-      }
-    }
+
+      return jsonResponse({ error: 'Not found' }, 404);
+    },
   });
-  server.listen(PORT);
 };
