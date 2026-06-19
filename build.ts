@@ -69,8 +69,8 @@ const buildConfigs: { [key in 'connector-chrome' | 'app']: Bun.BuildConfig } = {
       './tui-connector-chrome/src/popup/popup.ts',
     ],
     define: {
-      '__VERSION__': JSON.stringify(version),
-      '__BUILD_DATE__': JSON.stringify(buildDate),
+      __VERSION__: JSON.stringify(version),
+      __BUILD_DATE__: JSON.stringify(buildDate),
     },
     outdir: './tui-connector-chrome/dist',
     target: 'browser',
@@ -80,8 +80,8 @@ const buildConfigs: { [key in 'connector-chrome' | 'app']: Bun.BuildConfig } = {
   app: {
     entrypoints: ['./tui-app/src/index.ts'],
     define: {
-      '__VERSION__': JSON.stringify(version),
-      '__BUILD_DATE__': JSON.stringify(buildDate),
+      __VERSION__: JSON.stringify(version),
+      __BUILD_DATE__: JSON.stringify(buildDate),
     },
     compile: {
       target: `bun-${buildTarget}` as Bun.Build.CompileTarget,
@@ -100,13 +100,18 @@ const buildConfigs: { [key in 'connector-chrome' | 'app']: Bun.BuildConfig } = {
       process.exit(1);
     }
     if (target === 'connector-chrome') {
-      // Copy popup.html next to the bundled popup.js
+      console.log('Copying manifest.json...');
+      fs.copyFileSync(
+        './tui-connector-chrome/manifest.json',
+        './tui-connector-chrome/dist/manifest.json',
+      );
+      console.log('Copying popup.html...');
       fs.copyFileSync(
         './tui-connector-chrome/src/popup/popup.html',
         './tui-connector-chrome/dist/popup/popup.html',
       );
 
-      // Copy icons into dist/
+      console.log('Copying icons...');
       const iconDir = './tui-connector-chrome/dist/icon';
       if (!fs.existsSync(iconDir)) {
         fs.mkdirSync(iconDir, { recursive: true });
@@ -117,20 +122,6 @@ const buildConfigs: { [key in 'connector-chrome' | 'app']: Bun.BuildConfig } = {
           `${iconDir}/${file}`,
         );
       }
-
-      // Write manifest with paths adjusted for dist/ being the extension root
-      const manifest = JSON.parse(
-        fs.readFileSync('./tui-connector-chrome/manifest.json', 'utf8'),
-      );
-      manifest.action.default_popup = 'popup/popup.html';
-      manifest.background.service_worker = 'index.js';
-      for (const [size, path] of Object.entries(manifest.icons)) {
-        manifest.icons[size] = (path as string).replace(/^.*\//, 'icon/');
-      }
-      fs.writeFileSync(
-        './tui-connector-chrome/dist/manifest.json',
-        JSON.stringify(manifest, null, 2) + '\n',
-      );
     }
     const githubOutput = process.env.GITHUB_OUTPUT;
     if (githubOutput) {

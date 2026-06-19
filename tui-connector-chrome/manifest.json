@@ -5,10 +5,10 @@
   "permissions": ["bookmarks", "storage", "alarms"],
   "host_permissions": ["http://localhost:31531/*"],
   "action": {
-    "default_popup": "dist/popup/popup.html"
+    "default_popup": "popup/popup.html"
   },
   "background": {
-    "service_worker": "dist/index.js",
+    "service_worker": "index.js",
     "type": "module"
   },
   "icons": {
