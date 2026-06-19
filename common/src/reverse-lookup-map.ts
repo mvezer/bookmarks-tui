@@ -31,7 +31,7 @@ export class ReverseLookupFieldMap<K, V, L extends keyof V> extends Map<K, V> {
 
   delete(key: K): boolean {
     const existing = this.get(key);
-    if (existing != null) {
+    if (existing !== undefined && existing !== null) {
       this._reverseMap.delete(existing[this._reverseLookupField]);
     }
     return super.delete(key);
