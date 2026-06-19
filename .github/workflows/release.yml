@@ -68,7 +68,7 @@ jobs:
 
   release:
     name: Create GitHub Release
-    needs: [build, build-connector]
+    needs: [build, build-connector-chrome]
     runs-on: ubuntu-latest
 
     permissions:
