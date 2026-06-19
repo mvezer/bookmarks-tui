@@ -58,13 +58,13 @@ jobs:
       - name: Zip TUI Connector Chrome
         run: |
           cd tui-connector-chrome/dist
-          zip -r ../tui-connector-chrome-v${{ steps.build.outputs.version }}.zip .
+          zip -r ../../bookmarks-tui-connector-chrome-v${{ steps.build.outputs.version }}.zip .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bookmarks-tui-connector-chrome-v${{ steps.version.outputs.version }}
-          path: bookmarks-tui-connector-chrome-v${{ steps.version.outputs.version }}.zip
+          name: bookmarks-tui-connector-chrome-v${{ steps.build.outputs.version }}
+          path: bookmarks-tui-connector-chrome-v${{ steps.build.outputs.version }}.zip
 
   release:
     name: Create GitHub Release
