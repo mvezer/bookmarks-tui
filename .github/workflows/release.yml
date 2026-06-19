@@ -53,7 +53,7 @@ jobs:
 
       - name: Build connector
         id: build
-        run: bun run build:connector
+        run: bun build:connector-chrome
 
       - name: Zip TUI Connector Chrome
         run: |
