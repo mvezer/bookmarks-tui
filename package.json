@@ -4,7 +4,11 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "latest",
+    "eslint": "^10.5.0",
+    "globals": "^17.6.0",
+    "typescript-eslint": "^8.61.1"
   },
   "private": true,
   "type": "module",
@@ -14,13 +18,13 @@
   "scripts": {
     "start": "bun run tui-app/src/index.ts",
     "dev": "bun run --watch tui-app/src/index.ts",
-    "build:connector": "rm -rf connector/dist && bun build ./connector/src/background.ts --outdir ./connector/dist && bun build ./connector/src/popup.ts --outdir ./connector/dist",
-    "build:tui": "bun build --compile --minify ./tui-app/src/index.ts --outfile bookmarks-tui"
+    "build:connector-chrome": "rm -rf tui-connector-chrome/dist && bun run build.ts connector-chrome",
+    "build:app": "bun run build.ts app"
   },
   "workspaces": [
     "common",
     "tui-app",
-    "connector"
+    "tui-connector-chrome"
   ],
   "dependencies": {
     "env-paths": "^4.0.0"
