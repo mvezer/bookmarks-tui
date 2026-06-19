@@ -2,7 +2,7 @@ import { CliRenderer, TextRenderable } from '@opentui/core';
 import { BaseDialog, type DialogOptions } from './base-dialog';
 import type { ColorScheme } from '../../colorscheme';
 import { Keymap, KeymapEvents } from '../keymap';
-import type { Bookmark } from '@bookmarks-tui/common';
+import type { Bookmark } from '@bookmarks-tui/common/bookmarks';
 import { TUIEventBus, TUIEvents } from '../tui-events';
 import { infoToast } from './info-toast';
 

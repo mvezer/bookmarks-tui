@@ -1,12 +1,9 @@
 import { readFileSync, writeFileSync } from 'fs';
 import { BookmarkRepository } from './bookmarks/bookmark-repository';
-import {
-  BookmarkChangeRepository,
-  createBookmark,
-  isBookmark,
-  createBookmarkHash,
-} from '@bookmarks-tui/common';
+import { createBookmark, isBookmark } from '@bookmarks-tui/common/bookmarks';
+import { createBookmarkHash } from '@bookmarks-tui/common/hash';
 import { Db } from './bookmarks/db';
+import { DEFAULT_GENERAL_CONFIG } from './config/parsers/general-parser';
 import { getLinksFromHtml } from './utils/html-parser';
 import { generateHtml } from './utils/html-generator';
 
@@ -165,16 +162,12 @@ export const parseCliArgs = (): {
   };
 };
 
-const initBookmarkRepository = async (): Promise<BookmarkRepository> => {
-  const db = new Db();
-  await db.init();
+const initBookmarkRepository = (): BookmarkRepository => {
+  const db = new Db(DEFAULT_GENERAL_CONFIG.dbPath);
+  db.init();
 
-  const bookmarkChangeRepository = new BookmarkChangeRepository(db);
-  const bookmarkRepository = new BookmarkRepository(
-    bookmarkChangeRepository,
-    db,
-  );
-  await bookmarkRepository.init();
+  const bookmarkRepository = new BookmarkRepository(db);
+  bookmarkRepository.init();
   return bookmarkRepository;
 };
 
@@ -182,7 +175,7 @@ export const importBookmarks = async (
   importOptions: ImportOptions,
 ): Promise<CliResult> => {
   const { filePath, format } = importOptions;
-  const bookmarkRepository = await initBookmarkRepository();
+  const bookmarkRepository = initBookmarkRepository();
   let cliResult: CliResult = { exitCode: 0 };
   try {
     if (!filePath) {
@@ -238,7 +231,7 @@ export const exportBookmarks = async (
   exportOptions: ExportOptions,
 ): Promise<CliResult> => {
   const { filePath, format } = exportOptions;
-  const bookmarkRepository = await initBookmarkRepository();
+  const bookmarkRepository = initBookmarkRepository();
   let cliResult: CliResult = { exitCode: 0 };
   try {
     if (format === Format.Html) {

@@ -1,14 +1,12 @@
-import { Storage, type Stats } from './storage';
-import { getHostStatus, HostStatus } from './main';
+import { Metrics } from '../storage/metrics';
+import { getHostStatus, HostStatus } from '../rest';
 
-const updateStatus = (stats: Stats, hostStatus: HostStatus) => {
+const updateStatus = (hostStatus: HostStatus) => {
   const {
-    bookmarks,
-    changesReceived,
-    changesProcessed,
-    changesSent,
-    pendingChanges,
-  } = stats;
+    bookmarksCount: bookmarks,
+    bookmarkChangesSent: changesSent,
+    bookmarkChangesReceived: changesReceived,
+  } = Metrics.instance.metrics;
 
   const bookmarksElement = document.getElementById('bookmarks');
   if (bookmarksElement) {
@@ -18,17 +16,9 @@ const updateStatus = (stats: Stats, hostStatus: HostStatus) => {
   if (changesReceivedElement) {
     changesReceivedElement.innerText = changesReceived.toString();
   }
-  const changesProcessedElement = document.getElementById('changesProcessed');
-  if (changesProcessedElement) {
-    changesProcessedElement.innerText = changesProcessed.toString();
-  }
   const changesSentElement = document.getElementById('changesSent');
   if (changesSentElement) {
     changesSentElement.innerText = changesSent.toString();
-  }
-  const pendingChangesElement = document.getElementById('pendingChanges');
-  if (pendingChangesElement) {
-    pendingChangesElement.innerText = pendingChanges.toString();
   }
 
   const hostStatusElement = document.getElementById('hostStatus');
@@ -45,8 +35,6 @@ const updateStatus = (stats: Stats, hostStatus: HostStatus) => {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const storage = new Storage();
-  await storage.init();
-  await storage.getStats();
-  updateStatus(storage.stats, await getHostStatus());
+  await Metrics.create();
+  updateStatus(await getHostStatus());
 });

@@ -2,9 +2,8 @@ import { ScrollBoxRenderable, CliRenderer } from '@opentui/core';
 import { ResultItem } from './result-item';
 import { Keymap, KeymapEvents } from '../keymap';
 import { TUIEventBus, TUIEvents } from '../tui-events';
-import { yesNoDialog } from './yesno-dialog';
 
-import type { Bookmark } from '@bookmarks-tui/common';
+import type { Bookmark } from '@bookmarks-tui/common/bookmarks';
 import type { ColorScheme } from '../../colorscheme';
 
 export class ResultList extends ScrollBoxRenderable {
@@ -55,22 +54,30 @@ export class ResultList extends ScrollBoxRenderable {
   }
 
   clear() {
-    this._items.forEach((item) => item.destroy());
-    this._items = [];
+    let item = this._items.pop();
+    while (!!item) {
+      this.remove(item.id);
+      item.destroy();
+      item = this._items.pop();
+    }
   }
 
   set items(bookmarks: Bookmark[]) {
-    this.clear();
+    try {
+      this.clear();
 
-    for (const b of bookmarks) {
-      const item = new ResultItem(this._renderer, b, this._colorScheme);
-      this._items.push(item);
-      this.add(item);
+      for (const b of bookmarks) {
+        const item = new ResultItem(this._renderer, b, this._colorScheme);
+        this._items.push(item);
+        this.add(item);
+      }
+      this.selectedIndex = 0;
+    } catch (e) {
+      console.error(e);
     }
-    this.selectedIndex = 0;
   }
 
-  _applySelected(value: number) {
+  applySelected(value: number) {
     if (this._items.length === 0) {
       return;
     }
@@ -79,8 +86,14 @@ export class ResultList extends ScrollBoxRenderable {
     } else if (value < 0) {
       value = 0;
     }
-    this._items[this._selectedIndex]!.selected = false;
+
+    // if the old selected item does not exist, do nothing (e.g. we deleted the item)
+    if (this._items[this._selectedIndex]) {
+      // unselect the old selected item
+      this._items[this._selectedIndex]!.selected = false;
+    }
     this._selectedIndex = value;
+    // select the new selected item
     this._items[this._selectedIndex]!.selected = true;
     this.scrollTo(Math.max(0, this._selectedIndex - this.height + 3));
     TUIEventBus.instance.emit(
@@ -98,32 +111,32 @@ export class ResultList extends ScrollBoxRenderable {
   }
 
   halfPageUp() {
-    this._applySelected(Math.floor(this.selectedIndex - this.height / 2));
+    this.applySelected(Math.floor(this.selectedIndex - this.height / 2));
   }
 
   halfPageDown() {
-    this._applySelected(Math.floor(this.selectedIndex + this.height / 2));
+    this.applySelected(Math.floor(this.selectedIndex + this.height / 2));
   }
 
   pageUp() {
-    this._applySelected(Math.max(0, this.selectedIndex - this.height));
+    this.applySelected(Math.max(0, this.selectedIndex - this.height));
   }
 
   pageDown() {
-    this._applySelected(
+    this.applySelected(
       Math.min(this._items.length - 1, this.selectedIndex + this.height),
     );
   }
 
   goToTop() {
-    this._applySelected(0);
+    this.applySelected(0);
   }
   goToBottom() {
-    this._applySelected(this._items.length - 1);
+    this.applySelected(this._items.length - 1);
   }
 
   set selectedIndex(value: number) {
-    this._applySelected(value);
+    this.applySelected(value);
   }
   get selectedIndex(): number {
     return this._selectedIndex;

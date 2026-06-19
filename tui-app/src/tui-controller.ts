@@ -1,12 +1,7 @@
-import {
-  type BookmarkChange,
-  type Bookmark,
-  BookmarkChangeRepository,
-  BookmarkChangeKind,
-  createBookmark,
-} from '@bookmarks-tui/common';
+import { type Bookmark, createBookmark } from '@bookmarks-tui/common/bookmarks';
+import { type SyncData } from '@bookmarks-tui/common/sync';
+import { createBookmarkHash } from '@bookmarks-tui/common/hash';
 import { BookmarkRepository } from './bookmarks/bookmark-repository';
-import Fuse from 'fuse.js';
 import { Db } from './bookmarks/db';
 import { TUIEventBus, TUIEvents } from './tui/tui-events';
 
@@ -20,14 +15,11 @@ import type { Config } from './config/types';
 import { openInEditor } from './utils/editor';
 import { deleteDialog } from './tui/components/delete-dialog';
 import { type ColorScheme } from './colorscheme';
-import { createBookmarkHash } from '@bookmarks-tui/common';
 import { infoToast } from './tui/components/info-toast';
 import { errorToast } from './tui/components/error-toast';
 
 export class TUIController {
-  private _fuse: Fuse<Bookmark>;
   private _db: Db;
-  private _bookmarkChangeRepository: BookmarkChangeRepository;
   private _bookmarkRepository: BookmarkRepository;
   private _tui: TUI | undefined;
   private _renderer: CliRenderer | undefined;
@@ -35,16 +27,7 @@ export class TUIController {
 
   constructor(private _config: Config) {
     this._db = new Db(_config.general.dbPath);
-    this._fuse = new Fuse<Bookmark>([], {
-      keys: ['title'],
-      includeScore: false,
-    });
-    this._bookmarkChangeRepository = new BookmarkChangeRepository(this._db);
-    this._bookmarkRepository = new BookmarkRepository(
-      this._bookmarkChangeRepository,
-      this._db,
-      this._fuse,
-    );
+    this._bookmarkRepository = new BookmarkRepository(this._db);
 
     this._colorScheme = _config.colorSchemes[this._config.general.colorScheme]!;
   }
@@ -64,54 +47,32 @@ export class TUIController {
     return this._renderer;
   }
 
+  private sync(syncData: SyncData): SyncData {
+    syncData.changed?.forEach((bookmark) => {
+      this._bookmarkRepository.setBookmark(bookmark, syncData.clientId);
+    });
+    syncData.removed?.forEach((uid) => {
+      this._bookmarkRepository.removeBookmark(uid, syncData.clientId);
+    });
+    if (syncData.changed?.length || syncData.removed?.length) {
+      TUIEventBus.instance.emit(TUIEvents.SearchQueryChanged);
+    }
+    syncData.confirmed?.forEach((uid) => {
+      this._bookmarkRepository.confirmSync(uid, syncData.clientId!);
+    });
+    return {
+      confirmed: [
+        ...(syncData.changed?.map((b) => b.uid) ?? []),
+        ...(syncData.removed ?? []),
+      ],
+      ...this._db.getSyncData(syncData.clientId!),
+    };
+  }
+
   private startHttpServer(): void {
     startHttpServer({
       onStatus: () => 'ok',
-      onSyncReceived: async (
-        changes: [string, BookmarkChange][],
-      ): Promise<string[]> => {
-        const processedChangeIds: string[] = [];
-        for (const [changeId, change] of changes) {
-          const { kind, timestamp, ...idOrBookmark } = change;
-          try {
-            if (kind === BookmarkChangeKind.Add) {
-              if (change.oldId) {
-                // we have id change!
-                await this._bookmarkRepository.removeBookmark.bind(
-                  this._bookmarkRepository,
-                )(change.oldId, true);
-              }
-              await this._bookmarkRepository.setBookmark.bind(
-                this._bookmarkRepository,
-              )(idOrBookmark as Bookmark, true);
-            } else if (kind === BookmarkChangeKind.Remove) {
-              await this._bookmarkRepository.removeBookmark.bind(
-                this._bookmarkRepository,
-              )(idOrBookmark.id, true);
-            }
-            processedChangeIds.push(changeId);
-          } catch (error) {
-            console.error(error);
-          }
-        }
-        if (processedChangeIds.length > 0) {
-          this._tui?.resetSearch();
-          this.updateSearchResults();
-        }
-        return processedChangeIds;
-      },
-      onSyncRequested: () => {
-        return Array.from(
-          this._bookmarkChangeRepository
-            .getAllchanges()
-            .map(([changeId, change]) => [changeId, change]),
-        );
-      },
-      onSyncConfirmed: async (keys: string[]): Promise<void> => {
-        await Promise.all(
-          keys.map((k) => this._bookmarkChangeRepository.delete(k)),
-        );
-      },
+      onSync: (syncData: SyncData): SyncData => this.sync.bind(this)(syncData),
     } as IHttpServerHandlers);
   }
 
@@ -128,7 +89,7 @@ export class TUIController {
   async editBookmark(bookmark: Bookmark): Promise<void> {
     try {
       this._renderer?.suspend();
-      const oldHash = createBookmarkHash(bookmark);
+      const { hash: oldHash } = bookmark;
       const { title, url } = await openInEditor(
         bookmark,
         this._config.general.editor,
@@ -177,9 +138,8 @@ export class TUIController {
   }
 
   async init(): Promise<void> {
-    await this._db.init();
-    await this._bookmarkChangeRepository.init();
-    await this._bookmarkRepository.init();
+    this._db.init();
+    this._bookmarkRepository.init();
 
     const renderer = await this.createRenderer();
     Keymap.init(renderer, this._config.keymap);
@@ -202,7 +162,7 @@ export class TUIController {
     TUIEventBus.instance.on(
       TUIEvents.BookmarkDeleteRequest,
       async (bookmark: Bookmark) => {
-        await this._bookmarkRepository.removeBookmark(bookmark.id);
+        await this._bookmarkRepository.removeBookmark(bookmark.uid);
         this.updateSearchResults();
       },
     );

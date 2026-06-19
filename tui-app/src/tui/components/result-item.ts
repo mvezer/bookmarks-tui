@@ -1,5 +1,5 @@
 import { BoxRenderable, CliRenderer, TextRenderable } from '@opentui/core';
-import { type Bookmark } from '@bookmarks-tui/common';
+import { type Bookmark } from '@bookmarks-tui/common/bookmarks';
 import type { ColorScheme } from '../../colorscheme';
 
 export class ResultItem extends BoxRenderable {
@@ -11,7 +11,7 @@ export class ResultItem extends BoxRenderable {
     private _colorScheme: ColorScheme,
   ) {
     super(renderer, {
-      id: `result-item-${_bookmark.id}`,
+      id: `result-item-${_bookmark.uid}`,
       width: '100%',
       height: 1,
     });

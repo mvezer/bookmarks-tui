@@ -1,9 +1,8 @@
-import {
-  type Bookmark,
-  BookmarkChangeRepository,
-  ReverseLookupFieldMap,
-} from '@bookmarks-tui/common';
+import { type Bookmark } from '@bookmarks-tui/common/bookmarks';
+import { ReverseLookupFieldMap } from '@bookmarks-tui/common/reverse-lookup-map';
+
 import Fuse from 'fuse.js';
+import type { Db } from './db';
 
 export interface IBookmarkStorage {
   init(): Promise<void>;
@@ -23,74 +22,88 @@ export enum BookmarkRepositoryState {
 export class BookmarkRepository {
   private _bookmarks = new ReverseLookupFieldMap<string, Bookmark, 'hash'>(
     'hash',
-  );
+  ); // uid -> hash, hash -> uid
   private _isInitialized = false;
+  private _fuse: Fuse<Bookmark>;
 
-  constructor(
-    private _changes: BookmarkChangeRepository,
-    private _db?: IBookmarkStorage,
-    private _fuse?: Fuse<Bookmark>,
-  ) {}
+  constructor(private _db: Db) {
+    this._fuse = new Fuse<Bookmark>([], {
+      keys: ['title'],
+      includeScore: false,
+    });
+  }
 
-  async init(): Promise<void> {
+  init(): void {
     if (this._isInitialized) {
       return;
     }
+    this._db.init();
     if (this._db) {
-      const bookmarks = await this._db.getAllBookmarks();
+      const bookmarks = this._db.getAllBookmarks();
       for (const b of bookmarks) {
-        this._bookmarks.set(b.id, b);
-        this._fuse?.add(b);
+        this._bookmarks.set(b.uid, b);
+        this._fuse.add(b);
       }
     }
     this._isInitialized = true;
   }
 
-  async setBookmark(bookmark: Bookmark, disableChanges = false): Promise<void> {
-    const existingBookmark = this._bookmarks.get(bookmark.id);
+  async setBookmark(bookmark: Bookmark, clientId?: string): Promise<void> {
+    const existingBookmark = this._bookmarks.get(bookmark.uid);
     const exists = existingBookmark !== undefined;
-    const contentChanged = existingBookmark && existingBookmark?.hash !== bookmark.hash;
-    // the bookmark already exists with the same hash and id - nothing to do
+    const contentChanged = exists && existingBookmark!.hash !== bookmark.hash;
+
+    // the bookmark already exists with the same hash and id - nothing to update,
+    // but we still need to record that this client knows about it
     if (exists && !contentChanged) {
+      if (clientId) {
+        this.confirmSync(bookmark.uid, clientId);
+      }
       return;
     }
 
-    // if the content changed but the existing bookmark is newer than the incoming one - we don't do anything
+    // if the content changed but the existing bookmark is newer than the incoming one,
+    // we don't overwrite it, but we still confirm the sync for this client
     if (contentChanged && bookmark.modified < existingBookmark!.modified) {
+      if (clientId) {
+        this.confirmSync(bookmark.uid, clientId);
+      }
       return;
     }
 
     if (contentChanged) {
-      this._fuse?.remove((b) => b.id === bookmark.id);
+      this._fuse.remove((b) => b.uid === bookmark.uid);
+      bookmark.modified = Date.now();
     }
-    this._bookmarks.set(bookmark.id, bookmark);
-    await this._db?.setBookmark(bookmark);
-    this._fuse?.add(bookmark);
-    if (!disableChanges) {
-      await this._changes.add(bookmark);
+    this._bookmarks.set(bookmark.uid, bookmark);
+    if (clientId) {
+      this.confirmSync(bookmark.uid, clientId);
     }
+    this._db.setBookmark(bookmark);
+    this._fuse.add(bookmark);
   }
 
-  async removeBookmark(
-    bookmarkId: string,
-    disableChanges = false,
-  ): Promise<void> {
-    if (this._bookmarks.has(bookmarkId)) {
-      this._bookmarks.delete(bookmarkId);
-      await this._db?.removeBookmark(bookmarkId);
-      this._fuse?.remove((b) => b.id === bookmarkId);
-      if (!disableChanges) {
-        await this._changes.add(bookmarkId);
+  async removeBookmark(bookmarkUid: string, clientId?: string): Promise<void> {
+    if (this._bookmarks.has(bookmarkUid)) {
+      this._bookmarks.delete(bookmarkUid);
+      this._db.removeBookmark(bookmarkUid);
+      if (clientId) {
+        this.confirmSync(bookmarkUid, clientId);
       }
+      this._fuse.remove((b) => b.uid === bookmarkUid);
     }
   }
 
-  get bookmarks(): MapIterator<Bookmark> {
-    return this._bookmarks.values();
+  async confirmSync(bookmarkId: string, clientId: string): Promise<void> {
+    this._db.confirmSync(bookmarkId, clientId);
+  }
+
+  get bookmarks(): Bookmark[] {
+    return Array.from(this._bookmarks.values());
   }
 
   search(query: string): Bookmark[] {
-    return this._fuse?.search(query).map((item) => item.item) ?? [];
+    return this._fuse.search(query).map((item) => item.item) ?? [];
   }
 
   get size(): number {

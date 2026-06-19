@@ -14,16 +14,12 @@ jobs:
         include:
           - target: linux-x64
             runner: ubuntu-latest
-            bun-target: bun-linux-x64
           - target: linux-arm64
             runner: ubuntu-24.04-arm
-            bun-target: bun-linux-arm64
           - target: darwin-x64
             runner: macos-15-intel
-            bun-target: bun-darwin-x64
           - target: darwin-arm64
             runner: macos-latest
-            bun-target: bun-darwin-arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -33,25 +29,18 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Read version
-        id: version
-        run: echo "version=$(jq -r '.version' tui-app/package.json)" >> "$GITHUB_OUTPUT"
-
       - name: Build binary
-        run: >
-          bun build --compile --minify
-          --target=${{ matrix.bun-target }}
-          ./tui-app/src/index.ts
-          --outfile bookmarks-tui-${{ matrix.target }}
+        id: build
+        run: bun build:app ${{ matrix.target }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bookmarks-tui-${{ matrix.target }}-v${{ steps.version.outputs.version }}
+          name: bookmarks-tui-${{ matrix.target }}-v${{ steps.build.outputs.version }}
           path: bookmarks-tui-${{ matrix.target }}
 
-  build-connector:
-    name: Build Connector
+  build-tui-connector-chrome:
+    name: Build TUI Connector Chrome
     runs-on: ubuntu-latest
 
     steps:
@@ -62,27 +51,20 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Read version
-        id: version
-        run: echo "version=$(jq -r '.version' connector/manifest.json)" >> "$GITHUB_OUTPUT"
-
       - name: Build connector
+        id: build
         run: bun run build:connector
 
-      - name: Zip connector
+      - name: Zip TUI Connector Chrome
         run: |
-          cd connector
-          zip -r ../bookmarks-tui-connector-v${{ steps.version.outputs.version }}.zip \
-            manifest.json \
-            popup.html \
-            icon/ \
-            dist/
+          cd tui-connector-chrome/dist
+          zip -r ../tui-connector-chrome-v${{ steps.build.outputs.version }}.zip .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bookmarks-tui-connector-v${{ steps.version.outputs.version }}
-          path: bookmarks-tui-connector-v${{ steps.version.outputs.version }}.zip
+          name: bookmarks-tui-connector-chrome-v${{ steps.version.outputs.version }}
+          path: bookmarks-tui-connector-chrome-v${{ steps.version.outputs.version }}.zip
 
   release:
     name: Create GitHub Release

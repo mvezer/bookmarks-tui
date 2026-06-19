@@ -12,7 +12,6 @@ export const openUrl = (url: string, urlOpenCommand?: string): void => {
     return;
   }
   const command = urlOpenCommand || getDefaultBrowserCommand();
-  console.log(command, url, urlOpenCommand);
   Bun.spawn([command, url], {
     stdio: ['ignore', 'ignore', 'ignore'],
   });

@@ -1,7 +1,6 @@
-#!/usr/bin/env bun
 import { ResultList } from './components/result-list';
 import { Keymap, KeymapEvents } from './keymap';
-import { type Bookmark } from '@bookmarks-tui/common';
+import { type Bookmark } from '@bookmarks-tui/common/bookmarks';
 import { StatusBar } from './components/status-bar';
 import { TUIEventBus, TUIEvents } from './tui-events';
 

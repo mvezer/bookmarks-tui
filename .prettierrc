@@ -4,5 +4,6 @@
   "singleQuote": true,
   "trailingComma": "all",
   "tabWidth": 2,
-  "maxLineLength": 160
+  "maxLineLength": 160,
+  "bracketSameLine": true
 }
